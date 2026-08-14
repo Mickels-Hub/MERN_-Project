@@ -1,10 +1,13 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-dotenv.config();
 import userRouter from './routes/user.routes.js';
+import authRouter from './routes/auth.routes.js';
 
-mongoose.connect(process.env.MONGO)
+dotenv.config();
+
+mongoose
+  .connect(process.env.MONGO)
   .then(() => {
     console.log('Connected to MongoDB!');
   })
@@ -14,14 +17,13 @@ mongoose.connect(process.env.MONGO)
 
 const app = express();
 
+app.use(express.json());
+
+// Routes MUST come before app.listen
+app.use('/api/user', userRouter);
+app.use('/api/auth', authRouter);
+
+// Put app.listen at the VERY BOTTOM
 app.listen(3000, () => {
   console.log('Server is running on port 3000');
 });
-
-app.get('/test', (req, res) => {
-  res.json({
-    message: 'Hello World',
-  });
-});
-
-app.use('/api/user', userRouter);
