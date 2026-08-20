@@ -1,6 +1,48 @@
+import User from '../models/user.model.js';
+import { errorHandler } from '../utils/error.js';
+import bcryptjs from 'bcryptjs';
+
+// Add this missing test export right here:
 export const test = (req, res) => {
   res.json({
-    message: 'Mikel World!',
+    message: 'API is working!',
   });
+};
 
-}
+export const updateUser = async (req, res, next) => {
+  // Check if user is updating their own account
+  if (req.user.id !== req.params.id) {
+    return next(errorHandler(401, 'You can only update your own account!'));
+  }
+
+  try {
+    // Only hash password IF user actually typed a non-empty new password
+    if (req.body.password && req.body.password.trim() !== '') {
+      req.body.password = bcryptjs.hashSync(req.body.password, 10);
+    } else {
+      delete req.body.password;
+    }
+
+    // Build update object dynamically to prevent overwriting existing data with empty values
+    const updateData = {};
+    if (req.body.username) updateData.username = req.body.username;
+    if (req.body.email) updateData.email = req.body.email;
+    if (req.body.avatar) updateData.avatar = req.body.avatar;
+    if (req.body.password) updateData.password = req.body.password;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return next(errorHandler(404, 'User not found!'));
+    }
+
+    const { password, ...rest } = updatedUser._doc;
+    res.status(200).json(rest);
+  } catch (error) {
+    next(error);
+  }
+};

@@ -54,9 +54,9 @@ export default function Header() {
             'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
         }}
       />
-      <spam className='hidden sm:inline text-slate-700 font-medium hover:underline'>
+      <span className='hidden sm:inline text-slate-700 font-medium hover:underline'>
         Profile
-      </spam>
+      </span>
     </>
   ) : (
     <li className='text-slate-700 hover:underline'>Sign in</li>
