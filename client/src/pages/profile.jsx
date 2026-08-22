@@ -1,10 +1,9 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  updateUserStart,
-  updateUserSuccess,
-  updateUserFailure,
+import { 
+  updateUserStart, updateUserSuccess, updateUserFailure, 
+  deleteUserStart, deleteUserSuccess, deleteUserFailure 
 } from '../redux/user/userSlice';
 
 export default function Profile() {
@@ -62,7 +61,7 @@ export default function Profile() {
     });
   };
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       dispatch(updateUserStart());
@@ -73,13 +72,11 @@ export default function Profile() {
         },
         body: JSON.stringify(formData),
       });
-
       const data = await res.json();
       if (data.success === false) {
         dispatch(updateUserFailure(data.message));
         return;
       }
-
       dispatch(updateUserSuccess(data));
       setUpdateSuccess(true);
     } catch (error) {
@@ -87,6 +84,30 @@ export default function Profile() {
     }
   };
 
+const handleDeleteUser = async () => {
+    // 1. Pop up a confirmation dialog box
+    const confirmed = window.confirm("Are you sure you want to delete your account? This action cannot be undone.");
+    
+    // 2. If the user clicks "Cancel", stop the function right there
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      dispatch(deleteUserStart());
+      const res = await fetch(`/api/user/delete/${currentUser._id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success === false) {
+        dispatch(deleteUserFailure(data.message));
+        return;
+      }
+      dispatch(deleteUserSuccess(data));
+    } catch (error) {
+      dispatch(deleteUserFailure(error.message));
+    }
+  };
   return (
     <div className='min-h-screen py-10 flex flex-col items-center justify-center bg-slate-100'>
       <div className='w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden'>
@@ -230,33 +251,32 @@ export default function Profile() {
               Update Profile
             </button>
 
-            {/* Restored Create Listing Button */}
-            <Link
-              className='bg-green-700 text-white p-3 rounded-xl uppercase text-center font-bold hover:opacity-95'
-              to={'/create-listing'}
-            >
-              Create Listing
-            </Link>
-          </form>
+           {/* Restored Create Listing Button */}
+      <Link
+        className='bg-green-700 text-white p-3 rounded-xl uppercase text-center font-bold hover:opacity-95'
+        to={'/create-listing'}
+      >
+        Create Listing
+      </Link>
+    </form>
 
-          {/* Restored Delete Account and Sign Out Actions */}
-          <div className='flex justify-between mt-5 text-sm font-semibold'>
-            <span className='text-red-700 cursor-pointer hover:underline'>
-              Delete Account
-            </span>
-            <span className='text-red-700 cursor-pointer hover:underline'>
-              Sign Out
-            </span>
-          </div>
-
-          {updateSuccess && (
-            <p className='text-emerald-600 mt-4 text-center font-semibold text-sm'>
-              User updated successfully!
-            </p>
-          )}
-
-        </div>
-      </div>
+    {/* Restored Delete Account and Sign Out Actions */}
+    <div className='flex justify-between mt-5'>
+      <span onClick={handleDeleteUser} className='text-red-700 cursor-pointer hover:underline'>
+        Delete Account
+      </span>
+      <span className='text-red-700 cursor-pointer hover:underline'>
+        Sign Out
+      </span>
     </div>
+
+    {updateSuccess && (
+      <p className='text-emerald-600 mt-4 text-center font-semibold text-sm'>
+        User updated successfully!
+      </p>
+    )}
+  </div>
+</div>
+</div>
   );
 }
