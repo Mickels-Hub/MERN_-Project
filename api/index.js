@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import userRoutes from './routes/user.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import listingRoutes from './routes/listing.route.js';
+import paystackRouter from './routes/paystack.route.js';
 
 dotenv.config();
 
@@ -21,7 +23,8 @@ mongoose
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
 
 app.listen(3000, () => {
@@ -30,6 +33,8 @@ app.listen(3000, () => {
 
 app.use('/api/user', userRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/listing', listingRoutes);
+app.use('/api/paystack', paystackRouter)
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;

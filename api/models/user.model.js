@@ -19,6 +19,10 @@ avatar:{
     type: String,
     default: 'https://i.pinimg.com/originals/47/ba/71/47ba71f457434319819ac4a7cbd9988e.jpg'
 },
+isPaid: {
+    type: Boolean,
+    default: false,
+  },
 
 },  { timestamps: true });
 

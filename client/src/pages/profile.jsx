@@ -13,7 +13,7 @@ export default function Profile() {
 
   const [file, setFile] = useState(undefined);
   const [filePerc, setFilePerc] = useState(0);
-  const [fileUploadError, setFileUploadError] = useState(false);
+  const [fileUploadError, setFileUploadError] = useState(null);
   const [formData, setFormData] = useState({});
   const [updateSuccess, setUpdateSuccess] = useState(false);
 
@@ -27,13 +27,11 @@ export default function Profile() {
     setFilePerc(0);
     setFileUploadError(false);
 
-    const MAX_SIZE_KB = 10000;
-    if (file.size > MAX_SIZE_KB * 1024) {
-      setFileUploadError(true);
-      alert('Image too large! Please choose an image under 10,000 KB.');
-      return;
-    }
-
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB limit
+if (file.size > MAX_FILE_SIZE) {
+  setFileUploadError('Image must be less than 2MB.');
+  return;
+}
     const reader = new FileReader();
     reader.readAsDataURL(file);
 
@@ -111,17 +109,30 @@ const handleDeleteUser = async () => {
   return (
     <div className='min-h-screen py-10 flex flex-col items-center justify-center bg-slate-100'>
       <div className='w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden'>
+        {fileUploadError && (
+  <span className="text-red-700 text-sm block text-center mb-3 font-medium">
+    {fileUploadError}
+  </span>
+)}
         
         {/* Dark Top Banner */}
         <div className='bg-slate-900 h-36 relative flex justify-center'>
           <input
-            onChange={(e) => setFile(e.target.files[0])}
-            type='file'
-            ref={fileRef}
-            hidden
-            accept='image/*'
-          />
-
+  onChange={(e) => {
+    const file = e.target.files[0];
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB limit
+    if (file && file.size > MAX_FILE_SIZE) {
+      setFileUploadError('Image is too large! Please select an image under 2MB.');
+      return;
+    }
+    setFileUploadError(null);
+    setFile(file);
+  }}
+  type='file'
+  ref={fileRef}
+  hidden
+  accept='image/*'
+/>
           {/* Profile Picture Overlay */}
           <div className='absolute -bottom-12 group cursor-pointer'>
             <div className='relative w-24 h-24'>
@@ -132,8 +143,10 @@ const handleDeleteUser = async () => {
                   currentUser?.avatar ||
                   'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
                 }
+                
                 alt='profile'
                 className='rounded-full h-24 w-24 object-cover ring-4 ring-white shadow-md group-hover:opacity-85 transition'
+
               />
               <div
                 onClick={() => fileRef.current.click()}
@@ -167,21 +180,17 @@ const handleDeleteUser = async () => {
         <div className='pt-14 pb-8 px-8'>
           
           {/* Upload Status Feedback */}
-          <div className='text-center mb-3 min-h-5'>
-            {fileUploadError ? (
-              <span className='text-rose-500 text-xs font-semibold'>
-                Error uploading image (Must be image & less than 10MB)
-              </span>
-            ) : filePerc > 0 && filePerc < 100 ? (
-              <span className='text-slate-600 text-xs font-semibold animate-pulse'>
-                Uploading: {filePerc}%
-              </span>
-            ) : filePerc === 100 && !fileUploadError ? (
-              <span className='text-emerald-600 text-xs font-semibold'>
-                Image uploaded successfully!
-              </span>
-            ) : null}
-          </div>
+        <div className='text-center mb-3 min-h-5'>
+        {filePerc > 0 && filePerc < 100 ? (
+        <span className='text-slate-600 text-xs font-semibold'>
+        Uploading: {filePerc}%
+        </span>
+        ) : filePerc === 100 ? (
+        <span className='text-emerald-600 text-xs font-semibold'>
+        Image uploaded successfully!
+      </span>
+      ) : null}
+      </div>
 
           {/* User Info Header */}
           <div className='text-center mb-6'>
