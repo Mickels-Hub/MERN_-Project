@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 export default function CreateListing() {
   const { currentUser } = useSelector((state) => state.user);
   const navigate = useNavigate();
-  const [files, setFiles] = useState([]);
+  const params = useParams(); // Added to catch listingId from URL
+
+const [files, setFiles] = useState([]);
   const [formData, setFormData] = useState({
     imageUrls: [],
     name: '',
@@ -22,10 +24,27 @@ export default function CreateListing() {
     landlordName: '',
     landlordPhone: '',
   });
+
   const [imageUploadError, setImageUploadError] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // PUT THE useEffect HERE (After all states are declared)
+  useEffect(() => {
+    const fetchListing = async () => {
+      if (params.listingId) {
+        const res = await fetch(`/api/listing/get/${params.listingId}`);
+        const data = await res.json();
+        if (data.success === false) {
+          console.log(data.message);
+          return;
+        }
+        setFormData(data);
+      }
+    };
+    fetchListing();
+  }, [params.listingId]);
 
   // Admin Security Check
   const ADMIN_EMAIL = 'ugochukwumickel15@gmail.com';
@@ -79,9 +98,9 @@ export default function CreateListing() {
     return new Promise((resolve, reject) => {
       const data = new FormData();
       data.append('file', file);
-      data.append('upload_preset', 'mern_estate');
+      data.append('upload_preset', 'mern_project');
 
-      fetch(`https://api.cloudinary.com/v1_1/YOUR_CLOUDINARY_CLOUD_NAME/image/upload`, {
+      fetch(`https://api.cloudinary.com/v1_1/YOUR_CLOUDINARY_CLOUD_NAME/auto/upload`, {
         method: 'POST',
         body: data,
       })
@@ -144,8 +163,10 @@ export default function CreateListing() {
         return setError('Discounted price must be lower than the regular price');
       setLoading(true);
       setError(false);
-      const res = await fetch('/api/listing/create', {
-        method: 'POST',
+     const res = await fetch(
+    params.listingId ? `/api/listing/update/${params.listingId}` : '/api/listing/create',
+        {
+    method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },

@@ -46,28 +46,20 @@ export const updateListing = async (req, res, next) => {
 };
 
 // Get a single listing (Protected by Paywall/Admin check)
+// Get a single listing
+// Get a single listing by ID
 export const getListing = async (req, res, next) => {
   try {
     const listing = await Listing.findById(req.params.id);
     if (!listing) {
       return next(errorHandler(404, 'Listing not found!'));
     }
-
-    // SECURITY CHECK: Allow access ONLY if the user is the Admin OR has paid
-    const userEmail = req.user?.email; 
-    const isUserPaid = req.user?.isPaid;
-
-    if (userEmail !== 'ugochukwumickel15@gmail.com' && !isUserPaid) {
-      return next(errorHandler(403, 'Access denied! Please complete your verification payment to view property details and contacts.'));
-    }
-
     res.status(200).json(listing);
   } catch (error) {
     next(error);
   }
 };
 
-// Get all listings with filters/search
 export const getListings = async (req, res, next) => {
   try {
     const limit = parseInt(req.query.limit) || 9;
@@ -97,18 +89,77 @@ export const getListings = async (req, res, next) => {
     const sort = req.query.sort || 'createdAt';
     const order = req.query.order || 'desc';
 
-    const listings = await Listing.find({
-      name: { $regex: searchTerm, $options: 'i' },
+    const query = {
       offer,
       furnished,
       parking,
       type,
-    })
+    };
+
+    if (searchTerm && searchTerm.trim() !== '') {
+      query.$or = [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { description: { $regex: searchTerm, $options: 'i' } },
+        { address: { $regex: searchTerm, $options: 'i' } },
+      ];
+    }
+
+    const listings = await Listing.find(query)
       .sort({ [sort]: order })
       .limit(limit)
       .skip(startIndex);
 
     return res.status(200).json(listings);
+  } catch (error) {
+    next(error);
+  }
+};
+// Toggle Like / Unlike
+export const toggleLike = async (req, res, next) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return next(errorHandler(404, 'Listing not found!'));
+
+    const userId = req.user.id;
+    const isLiked = listing.likes.includes(userId);
+
+    if (isLiked) {
+      listing.likes = listing.likes.filter((id) => id !== userId);
+    } else {
+      listing.likes.push(userId);
+    }
+
+    await listing.save();
+    res.status(200).json(listing);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Add Comment
+export const addComment = async (req, res, next) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return next(errorHandler(404, 'Listing not found!'));
+
+    const newComment = {
+      userRef: req.user.id,
+      username: req.body.username,
+      avatar: req.body.avatar,
+      content: req.body.content,
+    };
+
+    listing.comments.push(newComment);
+    await listing.save();
+    res.status(200).json(listing);
+  } catch (error) {
+    next(error);
+  }
+};
+export const getAdminListings = async (req, res, next) => {
+  try {
+    const listings = await Listing.find({}).sort({ createdAt: -1 });
+    res.status(200).json(listings);
   } catch (error) {
     next(error);
   }

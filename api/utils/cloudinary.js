@@ -14,9 +14,8 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'mern-estate',
-    allowed_formats: ['jpg', 'jpeg', 'png'],
-  },
+  folder: 'mern-project',
+},
 });
 
 export const upload = multer({ storage: storage });

@@ -62,7 +62,20 @@ const listingSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-  },
+  likes: {
+      type: Array,
+      default: [],
+    },
+    comments: [
+      {
+        userRef: { type: String, required: true },
+        username: { type: String, required: true },
+        avatar: { type: String },
+        content: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+},
   { timestamps: true }
 );
 
