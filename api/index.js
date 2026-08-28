@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.routes.js';
 import listingRoutes from './routes/listing.route.js';
 import paystackRouter from './routes/paystack.route.js';
 import communityRouter from './routes/community.route.js';
+import notificationRouter from './routes/notification.route.js';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/listing', listingRoutes);
 app.use('/api/paystack', paystackRouter)
 app.use('/api/community', communityRouter);
+app.use('/api/notifications', notificationRouter);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FaSearch } from 'react-icons/fa';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import Notification from './Notification.jsx';
 
 export default function Header() {
   const { currentUser } = useSelector((state) => state.user);
@@ -36,45 +37,50 @@ export default function Header() {
           </h1>
         </Link>
 
-        <form onSubmit={handleSubmit} className="bg-slate-900/90 border border-slate-800 p-2 rounded-xl flex items-center shadow-inner">
+        <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl flex items-center shadow-inner w-24 sm:w-64 focus-within:border-blue-500 transition-all">
           <input
             type="text"
             placeholder="Search properties..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-transparent focus:outline-none w-24 sm:w-64 text-sm text-slate-200 px-2 placeholder:text-slate-500"
+            className="bg-transparent focus:outline-none w-24 sm:w-full text-sm text-white placeholder-slate-500 px-1"
           />
-          <button type="submit" className="text-slate-400 hover:text-blue-400 p-1 transition-colors cursor-pointer">
-            <FaSearch />
+          <button>
+            <FaSearch className="text-slate-400 hover:text-white transition" />
           </button>
         </form>
 
-        <ul className="flex items-center gap-6 text-sm font-semibold">
-          <Link to="/" className="hidden lg:inline text-slate-300 hover:text-white transition">
+        <ul className="flex items-center gap-6">
+          <Link to="/" className="hidden lg:inline text-slate-300 hover:text-white transition font-medium text-sm">
             Home
           </Link>
-          <Link to="/about" className="hidden lg:inline text-slate-300 hover:text-white transition">
+          <Link to="/about" className="hidden lg:inline text-slate-300 hover:text-white transition font-medium text-sm">
             About
           </Link>
-          <Link to="/community" className="hidden lg:inline text-slate-300 hover:text-white transition">
+          <Link to="/community" className="hidden lg:inline text-slate-300 hover:text-white transition font-medium text-sm">
             Community
           </Link>
-          {(currentUser?.isPaid || currentUser?.email === 'ugochukwumickel15@gmail.com') && (
-            <Link to="/admin-dashboard" className="text-amber-400 hover:text-amber-300 transition hidden sm:inline">
-              Admin Portal
+          {(currentUser?.isAdmin || currentUser?.email === 'ugochukwumickel15@gmail.com') && (
+        <Link to='/admin-dashboard' className='text-yellow-400 hover:text-yellow-300 transition font-semibold text-sm'>
+        Admin Portal
+      </Link>
+      )}
+
+          {/* Notification Bell Component */}
+          <Notification />
+
+          {/* Profile / Sign In Link */}
+          {currentUser ? (
+            <Link to='/profile'>
+              <img src={currentUser.avatar} alt='profile' className='rounded-full h-8 w-8 object-cover border border-slate-700 shadow' />
+            </Link>
+          ) : (
+            <Link to='/sign-in'>
+              <span className='text-slate-200 hover:text-white transition font-semibold text-sm bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl'>
+                Sign In
+              </span>
             </Link>
           )}
-          <Link to="/profile">
-            {currentUser ? (
-              <img
-                className="rounded-full h-8 w-8 object-cover border border-blue-500/50 shadow"
-                src={currentUser.avatar}
-                alt="profile"
-              />
-            ) : (
-              <span className="text-slate-300 hover:text-white transition">Sign In</span>
-            )}
-          </Link>
         </ul>
       </div>
     </header>

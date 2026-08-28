@@ -7,6 +7,25 @@ export default function CreateListing() {
   const navigate = useNavigate();
   const params = useParams(); // Added to catch listingId from URL
 
+ // Helper function to dispatch notifications
+const createNotificationRecord = async (message, type = 'listing') => {
+  try {
+    await fetch('/api/notifications/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: 'admin',
+        message,
+        type,
+      }),
+    });
+  } catch (error) {
+    console.log('Failed to create notification', error);
+  }
+};
+
 const [files, setFiles] = useState([]);
   const [formData, setFormData] = useState({
     imageUrls: [],
@@ -163,23 +182,27 @@ const [files, setFiles] = useState([]);
         return setError('Discounted price must be lower than the regular price');
       setLoading(true);
       setError(false);
-     const res = await fetch(
-    params.listingId ? `/api/listing/update/${params.listingId}` : '/api/listing/create',
+      const res = await fetch(
+        params.listingId ? `/api/listing/update/${params.listingId}` : '/api/listing/create',
         {
-    method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          userRef: currentUser._id,
-        }),
-      });
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...formData,
+            userRef: currentUser._id,
+          }),
+        }
+      );
       const data = await res.json();
       setLoading(false);
       if (data.success === false) {
         setError(data.message);
+        return;
       }
+      // Trigger notification on success
+      await createNotificationRecord(`New property listing created: "${formData.name || 'Executive Property'}"`);
       navigate(`/listing/${data._id}`);
     } catch (error) {
       setError(error.message);

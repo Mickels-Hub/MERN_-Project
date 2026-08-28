@@ -45,23 +45,71 @@ export const updateListing = async (req, res, next) => {
   }
 };
 
-// Get a single listing (Protected by Paywall/Admin check)
-// Get a single listing
-// Get a single listing by ID
-export const getListing = async (req, res, next) => {
+// Get a single listing by ID (Protected by Admin/Paywall Check)
+// Get a single listing by ID (Protected by Admin/Paywall Check)
+// Get a single listing by ID (Protected by Admin/Paywall Check)
+// Get a single listing by ID (Protected by Admin/Paywall Check)
+export const getlisting = async (req, res, next) => {
   try {
-    const listing = await Listing.findById(req.params.id);
+    // Check both req.params.id and req.params.listingId to prevent backend crashes
+    const listingId = req.params.id || req.params.listingId;
+
+    if (!listingId) {
+      return next(errorHandler(400, 'Listing ID is required!'));
+    }
+
+    const listing = await Listing.findById(listingId);
     if (!listing) {
       return next(errorHandler(404, 'Listing not found!'));
     }
-    res.status(200).json(listing);
+
+    // Safely extract user info
+    const currentUser = req.user || {};
+    const adminEmail = 'ugochukwumickel15@gmail.com';
+    const isAdmin = currentUser.email === adminEmail || currentUser.isAdmin === true;
+
+    let isUserPaid = currentUser.isPaid === true || currentUser.hasPaid === true;
+
+    // Safely check user payment status in DB if user is logged in
+    if (!isUserPaid && currentUser.id) {
+      try {
+        const user = await User.findById(currentUser.id);
+        if (user && (user.isPaid || user.hasPaid)) {
+          isUserPaid = true;
+        }
+      } catch (err) {
+        // Prevent DB lookup errors from triggering a 500 response
+      }
+    }
+
+    // Access check
+    if (!isAdmin && !isUserPaid) {
+      return next(errorHandler(403, 'Access denied! Complete payment to view this listing.'));
+    }
+
+    return res.status(200).json(listing);
   } catch (error) {
     next(error);
   }
 };
-
 export const getListings = async (req, res, next) => {
   try {
+    // 1. Check if user is logged in via token (req.user is populated by verifyToken middleware if used, or check custom headers/session)
+    // If you use verifyToken middleware on the /get route, req.user will exist.
+    const currentUser = req.user || {}; 
+    
+    // Define your admin email safely and check token properties
+  const adminEmail = 'ugochukwumickel15@gmail.com';
+  const userEmail = currentUser?.email || '';
+  const isAdmin = userEmail === adminEmail || currentUser?.isAdmin === true;
+  const isPaidUser = currentUser?.isPaid === true || currentUser?.hasPaid === true;
+  // Temporarily bypassed to let your page and listings load freely
+// if (!isAdmin && !isPaidUser) {
+//   return next(errorHandler(403, 'Please sign in and complete payment to access and browse listings!'));
+// }
+
+
+    // 3. Normal listing fetch logic for authorized users / admin
     const limit = parseInt(req.query.limit) || 9;
     const startIndex = parseInt(req.query.startIndex) || 0;
     let offer = req.query.offer;
@@ -114,6 +162,7 @@ export const getListings = async (req, res, next) => {
     next(error);
   }
 };
+
 // Toggle Like / Unlike
 export const toggleLike = async (req, res, next) => {
   try {

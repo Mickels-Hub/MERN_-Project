@@ -47,11 +47,21 @@ export const verifyPayment = async (req, res, next) => {
       { new: true }
     );
 
+    // Create and save the permanent welcome notification for the paid user
+    const newNotification = new Notification({
+      userId: updatedUser._id,
+      message: "Welcome to Mikel's Estate! Your account is active.",
+      type: "system",
+      isRead: false,
+    });
+    await newNotification.save();
+
     return res.status(200).json({
       success: true,
       message: 'Payment successful and access granted!',
       user: updatedUser,
     });
+
   } catch (error) {
     next(error);
   }

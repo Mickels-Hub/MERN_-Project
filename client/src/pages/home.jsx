@@ -83,16 +83,22 @@ export default function Home() {
     }
   };
 
-  const handleBrowseSearch = (e) => {
-    e.preventDefault();
-    if (currentUser) {
-      navigate('/search');
-    }
-  };
+const handleBrowseSearch = (e) => {
+  e.preventDefault();
+  if (currentUser?.isPaid || currentUser?.email === 'ugochukwumickel15@gmail.com') {
+    navigate('/search');
+  } else {
+    navigate('/sign-in'); // Redirect unpaid/logged-out users instantly
+  }
+};
 
-  const handleAdvancedSearch = () => {
-    navigate('/search?searchTerm=&type=all&offer=false&parking=false&furnished=false&sort=createdAt&order=desc');
-  };
+const handleAdvancedSearch = () => {
+  if (currentUser?.isPaid || currentUser?.email === 'ugochukwumickel15@gmail.com') {
+    navigate('/search?searchTerm=all&offer=false&parking=false&furnished=false&sort=createdAt&order=desc');
+  } else {
+    navigate('/sign-in');
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 selection:bg-blue-600 selection:text-white overflow-x-hidden">

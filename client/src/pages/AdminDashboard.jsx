@@ -7,6 +7,8 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [listings, setListings] = useState([]);
   const [communityPosts, setCommunityPosts] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+const [showNotifications, setShowNotifications] = useState(false);
   
   // Toggle state just like Sahand's profile listings
   const [showListingsError, setShowListingsError] = useState(false);
@@ -16,6 +18,23 @@ export default function AdminDashboard() {
   const [formData, setFormData] = useState({ username: '', email: '', password: '', role: 'user' });
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications/get');
+      const data = await res.json();
+      if (res.ok) {
+        setNotifications(data);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  
+  if (currentUser && currentUser.isAdmin) {
+    fetchNotifications();
+  }
+}, [currentUser]);
   // Fetch All Admin Data
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -146,6 +165,7 @@ export default function AdminDashboard() {
     );
   }
 
+
   return (
     <div className="max-w-6xl mx-auto p-6 my-6 text-slate-100">
       {/* Header Section */}
@@ -165,6 +185,44 @@ export default function AdminDashboard() {
           + Add New Member
         </button>
       </div>
+
+        <div className="relative">
+  {/* Notification Bell Button */}
+  <button 
+    onClick={() => setShowNotifications(!showNotifications)}
+    className="relative p-2 text-slate-300 hover:text-white transition"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+    </svg>
+    
+    {/* Unread Badge Count */}
+    {notifications.length > 0 && (
+      <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
+        {notifications.length}
+      </span>
+    )}
+  </button>
+
+  {/* Dropdown Menu */}
+  {showNotifications && (
+    <div className="absolute right-0 mt-2 w-80 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-3 px-4 z-50 max-h-96 overflow-y-auto">
+      <h3 className="text-white font-semibold text-sm mb-2 border-b border-slate-800 pb-2">Admin Notifications</h3>
+      {notifications.length === 0 ? (
+        <p className="text-slate-400 text-xs text-center py-4">No new notifications</p>
+      ) : (
+        notifications.map((notif) => (
+          <div key={notif._id} className="mb-2 p-2 bg-slate-800/60 rounded-xl border border-slate-700/50">
+            <p className="text-slate-200 text-xs font-medium">{notif.message}</p>
+            <span className="text-[10px] text-slate-400 mt-1 block">
+              {new Date(notif.createdAt).toLocaleTimeString()}
+            </span>
+          </div>
+        ))
+      )}
+    </div>
+  )}
+</div>
 
       {/* Stats Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -230,6 +288,7 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
 
       {/* Community Members & Staff Section */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8 shadow">
