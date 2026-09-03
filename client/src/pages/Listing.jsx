@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
 import { usePaystackPayment } from 'react-paystack';
+import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 
 SwiperCore.use([Navigation]);
 
@@ -24,7 +25,8 @@ export default function Listing() {
   const [copied, setCopied] = useState(false);
   const [userPaid, setUserPaid] = useState(false);
   const params = useParams();
-  const { currentUser } = useSelector((state) => state.user);
+const listingId = params.listingId || params.id;
+const { currentUser } = useSelector((state) => state.user);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -48,6 +50,83 @@ export default function Listing() {
     fetchListing();
     }, [params.listingId]);
 
+    const [commentText, setCommentText] = useState('');
+
+  const handleLike = async () => {
+  try {
+    const url = `/api/listing/like/${listingId}`;
+    console.log("Attempting to fetch URL:", url);
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setListing(data);
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+  const handleDislike = async () => {
+    try {
+      const res = await fetch(`/api/listing/dislike/${listingId}`, {
+     method: 'POST',
+    credentials: 'include',
+    });
+      const data = await res.json();
+      if (res.ok) {
+        setListing(data);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    try {
+      const res = await fetch(`/api/listing/comment/${listingId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // <--- This sends your JWT cookie to the backend
+        body: JSON.stringify({ comment: commentText }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setListing(data);
+        setCommentText('');
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  // State for reply inputs
+const [replyingTo, setReplyingTo] = useState(null);
+const [replyText, setReplyText] = useState('');
+
+const handleReplySubmit = async (commentId) => {
+  try {
+    const res = await fetch(`/api/listing/comment/reply/${listingId}/${commentId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ replyText }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setListing(data);
+      setReplyText('');
+      setReplyingTo(null);
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
   const config = {
     reference: (new Date()).getTime().toString(),
     email: currentUser?.email || 'user@example.com',
@@ -175,6 +254,121 @@ export default function Listing() {
                     {listing.parking ? 'Parking spot' : 'No Parking'}
                   </li>
                 </ul>
+                {/* Like / Dislike Bar */}
+    <div className="flex items-center gap-6 my-4">
+   <button onClick={handleLike} className="flex items-center gap-2 text-slate-700 hover:text-blue-600">
+    <FaThumbsUp /> <span>{listing.likes?.length || 0}</span>
+    </button>
+    <button onClick={handleDislike} className="flex items-center gap-2 text-slate-700 hover:text-red-600">
+    <FaThumbsDown /> <span>{listing.dislikes?.length || 0}</span>
+    </button>
+      </div>
+    {/* Comments Section */}
+<div className="mt-8">
+  <h3 className="text-xl font-bold mb-6 text-slate-900">
+    Comments ({listing.comments?.length || 0})
+  </h3>
+
+  {/* Main Comment Input */}
+  <form onSubmit={handleCommentSubmit} className="flex gap-3 mb-8">
+    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700">
+      {currentUser?.username ? currentUser.username.charAt(0).toUpperCase() : 'U'}
+    </div>
+    <div className="flex-1">
+      <input
+        type="text"
+        placeholder="Add a comment..."
+        value={commentText}
+        onChange={(e) => setCommentText(e.target.value)}
+        className="w-full bg-transparent border-b border-slate-300 pb-1 focus:border-slate-900 outline-none text-sm transition-colors"
+      />
+      <div className="flex justify-end gap-2 mt-2">
+        <button
+          type="button"
+          onClick={() => setCommentText('')}
+          className="px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-full"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-full hover:bg-blue-700 transition"
+        >
+          Comment
+        </button>
+      </div>
+    </div>
+  </form>
+
+  {/* Display Comments List */}
+  <div className="flex flex-col gap-6">
+    {listing.comments?.map((c) => (
+      <div key={c._id} className="flex gap-3 text-sm">
+        {/* Avatar initial */}
+        <div className="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center font-semibold flex-shrink-0 text-xs">
+          {c.username ? c.username.charAt(0).toUpperCase() : 'U'}
+        </div>
+
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-semibold text-slate-900">@{c.username}</span>
+            <span className="text-xs text-slate-500">Just now</span>
+          </div>
+
+          <p className="text-slate-800 leading-relaxed mb-2">{c.comment}</p>
+
+          {/* Action buttons (Like/Reply) */}
+          <div className="flex items-center gap-4 text-slate-600 text-xs">
+            <button
+              onClick={() => setReplyingTo(c._id)}
+              className="font-medium hover:text-blue-600 transition"
+            >
+              Reply
+            </button>
+          </div>
+
+          {/* Conditionally show reply input */}
+          {replyingTo === c._id && (
+            <div className="flex gap-2 mt-3 pl-2">
+              <input
+                type="text"
+                placeholder="Add a reply..."
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                className="w-full bg-transparent border-b border-slate-300 pb-1 focus:border-slate-900 outline-none text-sm transition-colors"
+              />
+              <button
+                onClick={() => handleReplySubmit(c._id)}
+                className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-full hover:bg-blue-700"
+              >
+                Reply
+              </button>
+            </div>
+          )}
+
+          {/* Nested Replies Stream */}
+          {c.replies && c.replies.length > 0 && (
+            <div className="flex flex-col gap-4 mt-3 pl-4 border-l-2 border-slate-100">
+              {c.replies.map((reply) => (
+                <div key={reply._id} className="flex gap-3">
+                  <div className="w-7 h-7 rounded-full bg-slate-700 text-white flex items-center justify-center font-semibold text-[10px] flex-shrink-0">
+                    {reply.username ? reply.username.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-semibold text-slate-900 text-xs">@{reply.username}</span>
+                    </div>
+                    <p className="text-slate-800 text-xs leading-relaxed">{reply.reply}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
 
               </div>
 

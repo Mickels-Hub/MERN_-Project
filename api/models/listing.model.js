@@ -62,19 +62,33 @@ const listingSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-  likes: {
-      type: Array,
-      default: [],
-    },
-    comments: [
+  // Inside your listing schema:
+likes: {
+  type: Array,
+  default: [],
+},
+dislikes: {
+  type: Array,
+  default: [],
+},
+comments: [
+  {
+    userRef: { type: String, required: true },
+    username: { type: String, required: true },
+    comment: { type: String, required: true },
+    image: { type: String }, // For attaching images
+    likes: { type: Array, default: [] },
+    replies: [
       {
         userRef: { type: String, required: true },
         username: { type: String, required: true },
-        avatar: { type: String },
-        content: { type: String, required: true },
+        reply: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },
-      },
+      }
     ],
+    createdAt: { type: Date, default: Date.now },
+  }
+]
 },
   { timestamps: true }
 );

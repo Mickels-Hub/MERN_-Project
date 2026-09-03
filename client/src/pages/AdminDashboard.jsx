@@ -1,14 +1,45 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { FaUsers } from 'react-icons/fa'
 
 export default function AdminDashboard() {
+const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalListings: 0,
+    communityMembers: 0,
+    communityPosts: 0,
+    activeSubAdmins: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  
+  useEffect(() => {
+  const fetchAdminStats = async () => {
+    try {
+      const res = await fetch('/api/admin/stats', { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) {
+        setStats(data);
+      }
+    } catch (error) {
+      console.log('Error fetching admin stats:', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchAdminStats();
+}, []);
+
   const { currentUser } = useSelector((state) => state.user);
   const [users, setUsers] = useState([]);
   const [listings, setListings] = useState([]);
   const [communityPosts, setCommunityPosts] = useState([]);
   const [notifications, setNotifications] = useState([]);
 const [showNotifications, setShowNotifications] = useState(false);
+const [totalUsers, setTotalUsers] = useState(0);
+const [signupNotifications, setSignupNotifications] = useState([])
   
   // Toggle state just like Sahand's profile listings
   const [showListingsError, setShowListingsError] = useState(false);
@@ -18,6 +49,23 @@ const [showNotifications, setShowNotifications] = useState(false);
   const [formData, setFormData] = useState({ username: '', email: '', password: '', role: 'user' });
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const fetchTotalUsers = async () => {
+      try {
+        const res = await fetch('/api/user/total-users');
+        const data = await res.json();
+        if (res.ok) {
+          setTotalUsers(data.totalUsers);
+        }
+      } catch (error) {
+        console.log(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTotalUsers();
+  }, []);
   useEffect(() => {
   const fetchNotifications = async () => {
     try {
@@ -133,6 +181,26 @@ const [showNotifications, setShowNotifications] = useState(false);
       console.log(error.message);
     }
   };
+  const fetchSignups = async () => {
+    try {
+      const res = await fetch('/api/notifications/get', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Filter specifically for sign-in/signup notifications
+        const signups = data.filter((n) => n.message && n.message.includes('signed in'));
+        setSignupNotifications(signups);
+      }
+    } catch (error) {
+      console.log('Error fetching signups:', error);
+    }
+  };
+
+  if (currentUser && currentUser.email === 'ugochukwumickel15@gmail.com') {
+    fetchSignups();
+  }
 
   // Handle Add Member Form Submit
   const handleAddMember = async (e) => {
@@ -225,26 +293,24 @@ const [showNotifications, setShowNotifications] = useState(false);
 </div>
 
       {/* Stats Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow">
-          <h3 className="text-slate-400 text-xs uppercase font-bold tracking-wider">Total Listings</h3>
-          <p className="text-2xl font-extrabold text-white mt-1">{listings.length}</p>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow">
-          <h3 className="text-slate-400 text-xs uppercase font-bold tracking-wider">Community Members</h3>
-          <p className="text-2xl font-extrabold text-white mt-1">{users.length}</p>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow">
-          <h3 className="text-slate-400 text-xs uppercase font-bold tracking-wider">Community Posts</h3>
-          <p className="text-2xl font-extrabold text-white mt-1">{communityPosts.length}</p>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow">
-          <h3 className="text-slate-400 text-xs uppercase font-bold tracking-wider">Active Sub-Admins</h3>
-          <p className="text-2xl font-extrabold text-white mt-1">
-            {users.filter((u) => u.role === 'admin' || u.role === 'sub-admin').length}
-          </p>
-        </div>
-      </div>
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow">
+    <h3 className="text-slate-400 text-xs uppercase font-bold tracking-wider">Total Listings</h3>
+    <p className="text-2xl font-extrabold text-white mt-1">{loading ? '...' : stats.totalListings.toLocaleString()}</p>
+  </div>
+  <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow">
+    <h3 className="text-slate-400 text-xs uppercase font-bold tracking-wider">Community Members</h3>
+    <p className="text-2xl font-extrabold text-white mt-1">{loading ? '...' : stats.communityMembers.toLocaleString()}</p>
+  </div>
+  <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow">
+    <h3 className="text-slate-400 text-xs uppercase font-bold tracking-wider">Community Posts</h3>
+    <p className="text-2xl font-extrabold text-white mt-1">{loading ? '...' : stats.communityPosts.toLocaleString()}</p>
+  </div>
+  <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow">
+    <h3 className="text-slate-400 text-xs uppercase font-bold tracking-wider">Active Sub-Admins</h3>
+    <p className="text-2xl font-extrabold text-white mt-1">{loading ? '...' : stats.activeSubAdmins.toLocaleString()}</p>
+  </div>
+</div>
 
       {/* EXACT SAHAND-STYLE SHOW LISTINGS TOGGLE SECTION */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8 shadow">
@@ -288,7 +354,36 @@ const [showNotifications, setShowNotifications] = useState(false);
           </div>
         )}
       </div>
-
+      <div className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white shadow-xl">
+      <div className="flex items-center gap-4">
+        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-blue-400">
+          <FaUsers className="text-2xl" />
+        </div>
+        <div>
+          <p className="text-sm text-slate-400 font-medium uppercase tracking-wider">Total Registered Accounts</p>
+          <h3 className="text-3xl font-black mt-1 text-white">
+           {loading ? '...' : stats.totalUsers}
+          </h3>
+        </div>
+      </div>
+    </div>
+    <div className="bg-white p-6 rounded-lg shadow-md mt-6 border border-slate-200">
+  <h3 className="text-lg font-semibold mb-4 text-slate-800">Admin Live Signup Logs</h3>
+  <div className="space-y-3 max-h-60 overflow-y-auto">
+    {signupNotifications.length === 0 ? (
+      <p className="text-sm text-slate-500">No new user signups recorded yet.</p>
+    ) : (
+      signupNotifications.map((notif) => (
+        <div key={notif._id} className="p-3 bg-slate-50 border border-slate-100 rounded-md text-sm text-slate-700 flex justify-between items-center">
+          <span>{notif.message}</span>
+          <span className="text-xs text-slate-400">
+            {new Date(notif.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+      ))
+    )}
+  </div>
+</div>
 
       {/* Community Members & Staff Section */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8 shadow">

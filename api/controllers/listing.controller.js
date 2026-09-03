@@ -1,15 +1,29 @@
 import Listing from '../models/listing.model.js';
 import { errorHandler } from '../utils/error.js';
+import User from '../models/user.model.js';
+import Notification from '../models/notification.model.js';
 
 // Create a new listing (Admin only)
 export const createListing = async (req, res, next) => {
   try {
     const listing = await Listing.create(req.body);
+
+    // Broadcast notification to all users when a new listing is posted
+    const users = await User.find({});
+    const notificationsData = users.map((user) => ({
+      userId: user._id,
+      message: `New property posted: "${listing.name}"`,
+      isRead: false,
+    }));
+
+    await Notification.insertMany(notificationsData);
+
     return res.status(201).json(listing);
   } catch (error) {
     next(error);
   }
 };
+
 
 // Delete a listing
 export const deleteListing = async (req, res, next) => {
@@ -164,18 +178,49 @@ export const getListings = async (req, res, next) => {
 };
 
 // Toggle Like / Unlike
-export const toggleLike = async (req, res, next) => {
+// Toggle Like
+export const likeListing = async (req, res, next) => {
   try {
-    const listing = await Listing.findById(req.params.id);
-    if (!listing) return next(errorHandler(404, 'Listing not found!'));
+    const listing = await Listing.findById(req.params.listingId);
+    if (!listing) return res.status(404).json({ message: 'Listing not found' });
 
     const userId = req.user.id;
-    const isLiked = listing.likes.includes(userId);
+    const hasLiked = listing.likes.includes(userId);
+    const hasDisliked = listing.dislikes.includes(userId);
 
-    if (isLiked) {
+    if (hasLiked) {
       listing.likes = listing.likes.filter((id) => id !== userId);
     } else {
       listing.likes.push(userId);
+      if (hasDisliked) {
+        listing.dislikes = listing.dislikes.filter((id) => id !== userId);
+      }
+    }
+
+    await listing.save();
+    res.status(200).json(listing);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Toggle Dislike
+export const dislikeListing = async (req, res, next) => {
+  try {
+    const listing = await Listing.findById(req.params.listingId);
+    if (!listing) return res.status(404).json({ message: 'Listing not found' });
+
+    const userId = req.user.id;
+    const hasDisliked = listing.dislikes.includes(userId);
+    const hasLiked = listing.likes.includes(userId);
+
+    if (hasDisliked) {
+      listing.dislikes = listing.dislikes.filter((id) => id !== userId);
+    } else {
+      listing.dislikes.push(userId);
+      if (hasLiked) {
+        listing.likes = listing.likes.filter((id) => id !== userId);
+      }
     }
 
     await listing.save();
@@ -188,14 +233,18 @@ export const toggleLike = async (req, res, next) => {
 // Add Comment
 export const addComment = async (req, res, next) => {
   try {
-    const listing = await Listing.findById(req.params.id);
-    if (!listing) return next(errorHandler(404, 'Listing not found!'));
+    const { comment } = req.body;
+    const listing = await Listing.findById(req.params.listingId);
+    if (!listing) return res.status(404).json({ message: 'Listing not found' });
+
+    // Fetch user from DB to guarantee we have their correct username
+    const user = await User.findById(req.user.id);
+    const username = user ? user.username : 'User';
 
     const newComment = {
       userRef: req.user.id,
-      username: req.body.username,
-      avatar: req.body.avatar,
-      content: req.body.content,
+      username: username,
+      comment,
     };
 
     listing.comments.push(newComment);
@@ -205,6 +254,35 @@ export const addComment = async (req, res, next) => {
     next(error);
   }
 };
+export const addReplyToComment = async (req, res, next) => {
+  try {
+    const { replyText } = req.body;
+    const { listingId, commentId } = req.params;
+
+    const listing = await Listing.findById(listingId);
+    if (!listing) return res.status(404).json({ message: 'Listing not found' });
+
+    const comment = listing.comments.id(commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+
+    const user = await User.findById(req.user.id);
+    const username = user ? user.username : 'User';
+
+    const newReply = {
+      userRef: req.user.id,
+      username: username,
+      reply: replyText,
+    };
+
+    comment.replies.push(newReply);
+    await listing.save();
+    res.status(200).json(listing);
+  } catch (error) {
+    console.log("REPLY ERROR:", error);
+    next(error);
+  }
+};
+
 export const getAdminListings = async (req, res, next) => {
   try {
     const listings = await Listing.find({}).sort({ createdAt: -1 });

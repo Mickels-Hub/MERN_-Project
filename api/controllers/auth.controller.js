@@ -2,6 +2,7 @@ import User from '../models/user.model.js';
 import bcryptjs from 'bcryptjs';
 import { errorHandler } from '../utils/error.js';
 import jwt from 'jsonwebtoken';
+import Notification from '../models/notification.model.js';
 
 export const signup = async (req, res, next) => {
   const { username, email, password } = req.body;
@@ -9,11 +10,37 @@ export const signup = async (req, res, next) => {
     return next(errorHandler(400, 'All fields are required'));
   }
 
-  const hashedPassword = bcryptjs.hashSync(password, 10);
-  const newUser = new User({ username, email, password: hashedPassword });
-
   try {
+    const hashedPassword = bcryptjs.hashSync(password, 10);
+    const newUser = new User({ username, email, password: hashedPassword });
+    
     await newUser.save();
+
+    // --- 1. SEND WELCOME NOTIFICATION TO THE NEW USER ---
+    const welcomeNotification = new Notification({
+      userId: newUser._id,
+      message: 'Welcome to Mikel’s Estate! Explore properties and connect with our community.',
+      type: 'welcome',
+    });
+    await welcomeNotification.save();
+
+    // --- 2. SEND REGISTRATION ALERT EXCLUSIVELY TO THE ADMIN ---
+    const adminUser = await User.findOne({ isAdmin: true });
+    if (adminUser) {
+      const adminAlert = new Notification({
+        userId: adminUser._id,
+        message: `${newUser.username} just signed up successfully!`,
+        type: 'signup-alert',
+      });
+      await adminAlert.save();
+    }
+
+      const newNotification = new Notification({
+  userId: newUser._id,
+  message: `${newUser.username} just signed in.`,
+  type: 'signup', // This makes it easy to filter for the admin dashboard!
+});
+await newNotification.save();
     res.status(201).json('User created successfully!');
   } catch (error) {
     next(error);
@@ -28,10 +55,22 @@ export const signin = async (req, res, next) => {
 
   try {
     const validUser = await User.findOne({ email });
-    if (!validUser) return next(errorHandler(404, 'User not found!'));
+    if (!validUser) {
+      return next(errorHandler(404, 'User not found'));
+    }
 
     const validPassword = bcryptjs.compareSync(password, validUser.password);
-    if (!validPassword) return next(errorHandler(400, 'Invalid credentials!'));
+    if (!validPassword) {
+      return next(errorHandler(400, 'Invalid credentials'));
+    }
+
+    // --- TRIGGER NOTIFICATION ON SUCCESSFUL SIGNIN ---
+    const newNotification = new Notification({
+      userId: validUser._id,
+      message: `${validUser.username || validUser.email} just signed in.`,
+      type: 'login',
+    });
+    await newNotification.save();
 
     const token = jwt.sign(
       { 

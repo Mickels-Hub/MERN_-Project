@@ -10,6 +10,6 @@ const router = express.Router();
 
 router.get('/get', verifyToken, getNotifications);
 router.post('/create', createNotification);
-router.put('/read', verifyToken, markAsRead);
+router.put('/:id/read', verifyToken, markAsRead);
 
 export default router;

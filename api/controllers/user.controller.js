@@ -1,6 +1,7 @@
 import User from '../models/user.model.js';
 import { errorHandler } from '../utils/error.js';
 import bcryptjs from 'bcryptjs';
+import Community from '../models/community.model.js';
 
 // --- EXISTING FUNCTIONS ---
 export const test = (req, res) => {
@@ -9,6 +10,25 @@ export const test = (req, res) => {
   });
 };
 
+export const getAdminStats = async (req, res, next) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalListings = await Listing.countDocuments();
+    const communityMembers = await User.countDocuments({ role: 'user' }); // or adjust based on your schema
+    const communityPosts = await Community.countDocuments(); // counts total community posts
+    const activeSubAdmins = await User.countDocuments({ role: { $in: ['admin', 'sub-admin'] } });
+
+    res.status(200).json({
+      totalUsers,
+      totalListings,
+      communityMembers,
+      communityPosts,
+      activeSubAdmins,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 export const updateUser = async (req, res, next) => {
   if (req.user.id !== req.params.id) {
     return next(errorHandler(401, 'You can only update your own account!'));
@@ -100,6 +120,15 @@ export const updateUserRole = async (req, res, next) => {
       { new: true }
     );
     res.status(200).json(updatedUser);
+  } catch (error) {
+    next(error);
+  }
+};
+// Get total registered users count for Admin
+export const getTotalUsers = async (req, res, next) => {
+  try {
+    const totalUsersCount = await User.countDocuments();
+    res.status(200).json({ totalUsers: totalUsersCount });
   } catch (error) {
     next(error);
   }
