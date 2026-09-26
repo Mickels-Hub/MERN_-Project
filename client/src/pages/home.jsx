@@ -101,7 +101,7 @@ const handleAdvancedSearch = () => {
 };
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 selection:bg-blue-600 selection:text-white overflow-x-hidden">
+    <div className="bg-[#030712] text-slate-100 w-full min-h-screen px-4 sm:px-6 py-6 overflow-y-auto">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-500/10 blur-[120px] pointer-events-none rounded-full" />
 
       <div className="relative overflow-hidden pt-28 pb-24 px-6 lg:px-8 border-b border-slate-800/80 bg-gradient-to-b from-[#0B0F19] to-[#030712]">

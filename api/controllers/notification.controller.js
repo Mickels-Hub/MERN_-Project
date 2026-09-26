@@ -26,11 +26,17 @@ export const createNotification = async (req, res, next) => {
 
 export const markAsRead = async (req, res, next) => {
   try {
-    await Notification.updateMany(
-      { userId: req.user.id, isRead: false },
-      { $set: { isRead: true } }
+    const updatedNotification = await Notification.findByIdAndUpdate(
+      req.params.id,
+      { $set: { isRead: true } },
+      { new: true }
     );
-    res.status(200).json('Notifications marked as read');
+    
+    if (!updatedNotification) {
+      return next(errorHandler(404, 'Notification not found!'));
+    }
+
+    res.status(200).json(updatedNotification);
   } catch (error) {
     next(error);
   }

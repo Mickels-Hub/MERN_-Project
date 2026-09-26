@@ -74,7 +74,7 @@ export default function Community() {
   };
 
   return (
-    <div className='max-w-3xl mx-auto p-4 my-8 text-slate-100'>
+    <div className='bg-[#030712] text-slate-100 w-full min-h-screen px-4 sm:px-6 py-6 overflow-y-auto'>
       {/* Banner */}
       <div className='bg-gradient-to-r from-blue-900/80 to-indigo-900/80 border border-blue-800/50 p-6 rounded-3xl shadow-2xl mb-8 text-center'>
         <h1 className='text-3xl font-black text-white mb-2'>🌐 Community Group Chat & Feed</h1>

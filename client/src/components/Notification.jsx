@@ -31,36 +31,50 @@ export default function Notification() {
       console.log("Audio Context not supported or blocked", e);
     }
   };
-useEffect(() => {
-  if (!currentUser) return;
- const fetchNotifications = async () => {
-    try {
-      const res = await fetch('/api/notifications/get', {
-        method: 'GET',
-        credentials: 'include',
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data);
-        const unread = data.filter((n) => !n.isRead);
-        if (unread.length > unreadCount && unread.length > 0) {
-          playChime();
-        }
-        setUnreadCount(unread.length);
-      } else {
-        const errorText = await res.text();
-        console.log('Server Error Response:', res.status, errorText);
-      }
-    } catch (error) {
-      console.log('Network/Catch Error fetching notifications:', error);
-    }
-  };
+  const prevUnreadCountRef = useRef(0);
 
-  fetchNotifications();
-  const interval = setInterval(fetchNotifications, 30000);
-  return () => clearInterval(interval);
-}, [currentUser]);
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch('/api/notifications/get', {
+          method: 'GET',
+          credentials: 'include',
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setNotifications(data);
+          const currentUnread = data.filter((n) => !n.isRead).length;
+          if (currentUnread > prevUnreadCountRef.current) {
+            playChime();
+          }
+          prevUnreadCountRef.current = currentUnread;
+          setUnreadCount(currentUnread);
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.log('Error fetching notifications:', error);
+        }
+      }
+    };
+
+    fetchNotifications();
+
+    // Optional: If you want it to poll every 10 seconds safely:
+    const interval = setInterval(fetchNotifications, 10000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+      clearInterval(interval);
+    };
+  }, [currentUser?.email]); // Depend only on the primitive string, never the whole object
+
   const handleNotificationClick = async (notificationId, isAlreadyRead) => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -76,17 +90,22 @@ useEffect(() => {
       });
 
       if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((notif) =>
+        setNotifications((prev) => {
+          const updated = prev.map((notif) =>
             notif._id === notificationId ? { ...notif, isRead: true } : notif
-          )
-        );
+          );
+          
+          const newUnreadCount = updated.filter((n) => !n.isRead).length;
+          prevUnreadCountRef.current = newUnreadCount;
+          setUnreadCount(newUnreadCount);
+          
+          return updated;
+        });
       }
     } catch (error) {
       console.log('Failed to mark notification as read:', error);
     }
   };
-
  return (
     <div className="relative">
       {/* Hidden audio element for notification alert chime */}

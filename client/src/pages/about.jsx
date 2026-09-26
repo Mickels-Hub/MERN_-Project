@@ -78,7 +78,7 @@ export default function About() {
   }, [reviews.length]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+    <div className="bg-[#030712] text-slate-100 w-full min-h-screen px-4 sm:px-6 py-6 overflow-y-auto">
       {/* Hero Section */}
       <div className="max-w-5xl mx-auto text-center my-12">
         <motion.div
