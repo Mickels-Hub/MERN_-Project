@@ -1,134 +1,91 @@
 import User from '../models/user.model.js';
+import ContactUnlock from '../models/contactUnlock.model.js';
+import Payment from '../models/payment.model.js';
+import Favorite from '../models/favorite.model.js';
 import { errorHandler } from '../utils/error.js';
 import bcryptjs from 'bcryptjs';
-import Community from '../models/community.model.js';
 
-// --- EXISTING FUNCTIONS ---
-export const test = (req, res) => {
-  res.json({
-    message: 'API is working!',
-  });
-};
-
-export const getAdminStats = async (req, res, next) => {
-  try {
-    const totalUsers = await User.countDocuments();
-    const totalListings = await Listing.countDocuments();
-    const communityMembers = await User.countDocuments({ role: 'user' }); // or adjust based on your schema
-    const communityPosts = await Community.countDocuments(); // counts total community posts
-    const activeSubAdmins = await User.countDocuments({ role: { $in: ['admin', 'sub-admin'] } });
-
-    res.status(200).json({
-      totalUsers,
-      totalListings,
-      communityMembers,
-      communityPosts,
-      activeSubAdmins,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+// Update User Profile with password hashing and validation
 export const updateUser = async (req, res, next) => {
   if (req.user.id !== req.params.id) {
     return next(errorHandler(401, 'You can only update your own account!'));
   }
   try {
-    if (req.body.password && req.body.password.trim() !== '') {
+    if (req.body.password) {
       req.body.password = bcryptjs.hashSync(req.body.password, 10);
-    } else {
-      delete req.body.password;
     }
-
-    const updateData = {};
-    if (req.body.username) updateData.username = req.body.username;
-    if (req.body.email) updateData.email = req.body.email;
-    if (req.body.avatar) updateData.avatar = req.body.avatar;
-    if (req.body.password) updateData.password = req.body.password;
-
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       {
-        $set: updateData,
+        $set: {
+          username: req.body.username,
+          email: req.body.email,
+          password: req.body.password,
+          avatar: req.body.avatar,
+        },
       },
       { new: true }
     );
-
     const { password, ...rest } = updatedUser._doc;
-    res.status(200).json(rest);
+    res.status(200).json({ success: true, ...rest });
   } catch (error) {
     next(error);
   }
 };
 
-export const deleteUser = async (req, res, next) => {
-  if (req.user.id !== req.params.id && req.user.email !== 'ugochukwumickel15@gmail.com') {
-    return next(errorHandler(401, 'You can only delete your own account!'));
+// Get properties unlocked by the user
+export const getUserUnlocks = async (req, res, next) => {
+  if (req.user.id !== req.params.id) {
+    return next(errorHandler(401, 'Unauthorized access to unlocks!'));
   }
   try {
-    await User.findByIdAndDelete(req.params.id);
-    res.clearCookie('access_token');
-    res.status(200).json('User has been deleted!');
+    const unlocks = await ContactUnlock.find({ userId: req.params.id }).populate('propertyId');
+    res.status(200).json({ success: true, unlocks });
   } catch (error) {
     next(error);
   }
 };
 
-// Get all users
-export const getUsers = async (req, res, next) => {
-  if (req.user.email !== 'ugochukwumickel15@gmail.com') {
-    return next(errorHandler(403, 'You are not authorized to see all users!'));
+// Get payment audit logs for the user
+export const getUserPayments = async (req, res, next) => {
+  if (req.user.id !== req.params.id) {
+    return next(errorHandler(401, 'Unauthorized access to payments!'));
   }
   try {
-    const users = await User.find({}).sort({ createdAt: -1 });
-    res.status(200).json(users);
+    const payments = await Payment.find({ userId: req.params.id }).populate('propertyId').sort({ createdAt: -1 });
+    res.status(200).json({ success: true, payments });
   } catch (error) {
     next(error);
   }
 };
 
-// Admin manually add user / community member
-export const addUserByAdmin = async (req, res, next) => {
-  if (req.user.email !== 'ugochukwumickel15@gmail.com') {
-    return next(errorHandler(403, 'Only admin can add members directly!'));
-  }
+// Toggle a property favorite
+export const toggleFavorite = async (req, res, next) => {
   try {
-    const { username, email, password, role } = req.body;
-    const hashedPassword = bcryptjs.hashSync(password, 10);
-    const newUser = new User({
-      username,
-      email,
-      password: hashedPassword,
-      role: role || 'user',
-    });
-    await newUser.save();
-    res.status(201).json(newUser);
+    const { propertyId } = req.body;
+    const existing = await Favorite.findOne({ userId: req.user.id, propertyId });
+    
+    if (existing) {
+      await Favorite.findByIdAndDelete(existing._id);
+      return res.status(200).json({ success: true, message: 'Removed from favorites' });
+    }
+    
+    const newFavorite = new Favorite({ userId: req.user.id, propertyId });
+    await newFavorite.save();
+    res.status(200).json({ success: true, message: 'Added to favorites' });
   } catch (error) {
     next(error);
   }
 };
 
-// Update User Role
-export const updateUserRole = async (req, res, next) => {
-  if (req.user.email !== 'ugochukwumickel15@gmail.com') {
-    return next(errorHandler(403, 'Only main admin can change roles!'));
+// Get user favorite properties
+export const getUserFavorites = async (req, res, next) => {
+  if (req.user.id !== req.params.id) {
+    return next(errorHandler(401, 'Unauthorized access to favorites!'));
   }
   try {
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.id,
-      { $set: { role: req.body.role } },
-      { new: true }
-    );
-    res.status(200).json(updatedUser);
-  } catch (error) {
-    next(error);
-  }
-};
-// Get total registered users count for Admin
-export const getTotalUsers = async (req, res, next) => {
-  try {
-    const totalUsersCount = await User.countDocuments();
-    res.status(200).json({ totalUsers: totalUsersCount });
+    const favorites = await Favorite.find({ userId: req.params.id }).populate('propertyId');
+    res.status(200).json({ success: true, favorites });
   } catch (error) {
     next(error);
   }

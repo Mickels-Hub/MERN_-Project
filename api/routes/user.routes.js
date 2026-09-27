@@ -1,20 +1,13 @@
+// (Keep your export format matching whatever you currently use)
 import express from 'express';
 import { verifyToken } from '../utils/verifyUser.js';
-import { test, updateUser, deleteUser, getUsers, updateUserRole, addUserByAdmin, getTotalUsers, getAdminStats } from '../controllers/user.controller.js';
+import { updateUser, getUserUnlocks, toggleFavorite, getUserFavorites } from '../controllers/user.controller.js';
 
 const router = express.Router();
 
-router.get('/test', test);
 router.post('/update/:id', verifyToken, updateUser);
-router.delete('/delete/:id', verifyToken, deleteUser);
+router.get('/unlocks/:id', verifyToken, getUserUnlocks);
+router.post('/favorite', verifyToken, toggleFavorite);
+router.get('/favorites/:id', verifyToken, getUserFavorites);
 
-// --- NEW ADMIN ROUTES ---
-router.get('/get-users', verifyToken, getUsers);
-router.get('/total-users', verifyToken, getTotalUsers);
-router.get('/admin-stats', verifyToken, getAdminStats);
-router.post('/add-user', verifyToken, addUserByAdmin);
-router.post('/update-role/:id', verifyToken, updateUserRole);
-router.delete('/delete/:id', verifyToken, deleteUser);
-
-
-export default function userRouter() { return router; } // (Keep your export format matching whatever you currently use)
+export default router;

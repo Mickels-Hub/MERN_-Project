@@ -9,8 +9,6 @@ import userRoutes from './routes/user.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import listingRoutes from './routes/listing.route.js';
 import paystackRouter from './routes/paystack.route.js';
-import communityRouter from './routes/community.route.js';
-import notificationRouter from './routes/notification.route.js';
 import cors from 'cors';
 import adminRouter from './routes/admin.route.js';
 
@@ -40,8 +38,6 @@ app.use('/api/user', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/listing', listingRoutes);
 app.use('/api/paystack', paystackRouter);
-app.use('/api/community', communityRouter);
-app.use('/api/notifications', notificationRouter);
 app.use('/api/admin', adminRouter);
 
 app.listen(3000, () => {
