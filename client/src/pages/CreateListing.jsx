@@ -35,13 +35,14 @@ const [files, setFiles] = useState([]);
     type: 'rent',
     bedrooms: 1,
     bathrooms: 1,
-    regularPrice: 35000,
+    regularPrice: 500000,
     discountPrice: 0,
     offer: false,
     parking: false,
     furnished: false,
     landlordName: '',
     landlordPhone: '',
+    lanlordlocation: '',
   });
 
   const [imageUploadError, setImageUploadError] = useState(false);
@@ -267,36 +268,71 @@ const [files, setFiles] = useState([]);
             />
           </div>
 
-          {/* Dedicated Section with Border for Landlord Contact Info */}
-          <div className='mt-4 pt-4 border-t border-slate-200'>
-            <h2 className='text-lg font-semibold text-slate-700 mb-3'>Landlord Contact Details (Hidden until user pays commission)</h2>
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200'>
-              <div>
-                <label className='block text-xs font-semibold uppercase text-slate-500 mb-1'>Landlord Name</label>
-                <input
-                  type='text'
-                  placeholder='e.g., Mr. Adeleke'
-                  className='border border-slate-300 p-3 rounded-xl w-full text-sm bg-white'
-                  id='landlordName'
-                  required
-                  onChange={handleChange}
-                  value={formData.landlordName}
-                />
-              </div>
-              <div>
-                <label className='block text-xs font-semibold uppercase text-slate-500 mb-1'>Landlord Phone Number</label>
-                <input
-                  type='text'
-                  placeholder='e.g., 08031234567'
-                  className='border border-slate-300 p-3 rounded-xl w-full text-sm bg-white'
-                  id='landlordPhone'
-                  required
-                  onChange={handleChange}
-                  value={formData.landlordPhone}
-                />
-              </div>
-            </div>
+          {/* Lagos Region / Sector Selector */}
+          <div className='flex flex-col gap-1'>
+            <label className='text-xs text-slate-400 font-semibold'>Lagos Region / Sector (e.g., Ajah)</label>
+            <select
+              id='lagosArea'
+              className='border border-slate-700 bg-slate-900 p-3 rounded-lg focus:border-[#10B981] focus:outline-none text-white'
+              onChange={handleChange}
+              value={formData.lagosArea}
+            >
+              {['Lekki Phase 1', 'Ikoyi', 'Victoria Island', 'Ajah', 'Ikeja GRA', 'Lekki Expressway / Chevron', 'Sangotedo', 'Yaba', 'Epe'].map((sector) => (
+                <option key={sector} value={sector} className='bg-slate-900 text-white'>
+                  {sector}
+                </option>
+              ))}
+            </select>
           </div>
+
+          {/* Landlord & Contact Information Section */}
+      <div className='flex flex-col gap-4 pt-4 border-t border-slate-800'>
+        <h3 className='text-sm font-bold text-slate-300 uppercase tracking-wider'>Landlord / Agent Contact Info</h3>
+        
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+          {/* Agent Name */}
+          <div className='flex flex-col gap-1'>
+            <label className='text-xs text-slate-400 font-semibold'>Landlord / Agent Name</label>
+            <input
+              type='text'
+              placeholder='e.g. Mr. Okoro'
+              className='border border-slate-700 bg-slate-900 p-3 rounded-lg focus:border-[#003580] focus:outline-none text-white text-sm'
+              id='landlordName'
+              required
+              onChange={handleChange}
+              value={formData.landlordName}
+            />
+          </div>
+
+          {/* Agent Location / Address */}
+          <div className='flex flex-col gap-1'>
+            <label className='text-xs text-slate-400 font-semibold'>Office / Contact Address</label>
+            <input
+              type='text'
+              placeholder='e.g. 25 Herbert Macaulay Way, Yaba'
+              className='border border-slate-700 bg-slate-900 p-3 rounded-lg focus:border-[#003580] focus:outline-none text-white text-sm'
+              id='landlordLocation'
+              required
+              onChange={handleChange}
+              value={formData.landlordLocation}
+            />
+          </div>
+
+          {/* Agent Phone Number */}
+          <div className='flex flex-col gap-1'>
+            <label className='text-xs text-slate-400 font-semibold'>Phone Number</label>
+            <input
+              type='text'
+              placeholder='e.g. +234 803 000 0000'
+              className='border border-slate-700 bg-slate-900 p-3 rounded-lg focus:border-[#003580] focus:outline-none text-white text-sm'
+              id='landlordPhone'
+              required
+              onChange={handleChange}
+              value={formData.landlordPhone}
+            />
+          </div>
+        </div>
+      </div>
 
           {/* Categories & Amenities Checkboxes */}
           <div className='pt-2'>

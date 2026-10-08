@@ -1,130 +1,136 @@
-import React, { useEffect, useState } from 'react';
-import { FaSearch } from 'react-icons/fa';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { FaHome, FaBuilding, FaMapMarkedAlt, FaLayerGroup, FaInfoCircle, FaGlobe, FaQuestionCircle, FaChevronDown } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import Notification from './Notification.jsx';
+import { useEffect, useState, useRef } from 'react';
 
 export default function Header() {
   const { currentUser } = useSelector((state) => state.user);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set('searchTerm', searchTerm);
-    const searchQuery = urlParams.toString();
-    navigate(`/search?${searchQuery}`);
-    setMobileMenuOpen(false);
-  };
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  
+  const profileMenuRef = useRef(null);
+  const moreMenuRef = useRef(null);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    const searchTermFromUrl = urlParams.get('searchTerm');
-    if (searchTermFromUrl) {
-      setSearchTerm(searchTermFromUrl);
-    }
-  }, [location.search]);
-
-  // Helper to check if current user is an admin
-  const isAdminUser = currentUser && (
-    currentUser.isAdmin === true || 
-    currentUser.email === 'ugochukwumickel15@gmail.com'
-  );
+    const handleOutsideClick = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setShowProfileMenu(false);
+      }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
+        setShowMoreMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   return (
-    <header className="bg-[#0B0F19] border-b border-slate-800 sticky top-0 z-50 shadow-md w-full">
-      <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
-        {/* Logo */}
-        <Link to="/">
-          <h1 className="font-bold text-sm sm:text-xl flex items-center">
-            <span className="bg-blue-600 text-white px-2 py-1 rounded-lg mr-1.5 shadow">M</span>
-            <span className="text-white">Mikel's</span>
-            <span className="text-blue-400 ml-1">Estate</span>
-          </h1>
-        </Link>
-
-        {/* Search Bar */}
-        <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 p-2 rounded-xl hidden sm:flex items-center shadow-inner w-40 sm:w-64">
-          <input
-            type="text"
-            placeholder="Search properties..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-transparent focus:outline-none w-full text-xs sm:text-sm text-white placeholder-slate-500 px-1"
-          />
-          <button type="submit">
-            <FaSearch className="text-slate-400 hover:text-white transition" />
-          </button>
-        </form>
-
-        {/* Desktop Links & Actions */}
-        <div className="flex items-center space-x-4">
-          <ul className="hidden md:flex items-center gap-4 text-slate-300 font-medium text-sm">
-            <Link to="/" className="hover:text-white transition">Home</Link>
-            <Link to="/about" className="hover:text-white transition">About</Link>
-            <Link to="/community" className="hover:text-white transition">Community</Link>
-            {isAdminUser && (
-              <Link to="/admin-dashboard" className="text-yellow-400 hover:text-yellow-300 transition font-semibold">
-                Admin Portal
-              </Link>
-            )}
-          </ul>
-
-          <div className="flex items-center space-x-3">
-            <Notification />
-
-            {currentUser ? (
-              <Link to="/profile">
-                <img src={currentUser.avatar} alt="profile" className="rounded-full h-8 w-8 object-cover border border-slate-700 shadow" />
-              </Link>
-            ) : (
-              <Link to="/sign-in">
-                <span className="text-slate-200 hover:text-white transition font-semibold bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs sm:text-sm">
-                  Sign In
-                </span>
-              </Link>
-            )}
-
-            {/* Mobile Hamburger Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-slate-300 hover:text-white focus:outline-none p-2 bg-slate-900 border border-slate-800 rounded-lg"
-              aria-label="Toggle Navigation Menu"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-          </div>
+    <header className='bg-[#003580] text-white sticky top-0 z-50 shadow-sm'>
+      {/* Main Header Bar */}
+      <div className='max-w-7xl mx-auto px-4 py-3 flex justify-between items-center'>
+        
+        {/* Left Side: Brand Name */}
+        <div className='flex items-center gap-10'>
+          <Link to='/'>
+            <span className='font-bold text-xl sm:text-2xl tracking-tight text-white flex items-center gap-1'>
+              Naija<span className='text-emerald-400'>Stays</span>
+            </span>
+          </Link>
         </div>
-      </div>
 
-      {/* Mobile Drawer Overlay Links */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed top-[57px] left-0 w-full h-[calc(100vh-57px)] bg-[#0B0F19]/95 backdrop-blur-md px-6 py-8 space-y-4 text-lg font-medium text-slate-200 shadow-2xl z-50 flex flex-col">
-          <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block py-3 px-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:bg-slate-800 transition">
-            Home
+        {/* Right Side: Utilities */}
+        <div className='flex items-center gap-3 text-sm font-medium'>
+          <span className='hidden sm:inline-block text-xs bg-blue-900 px-2.5 py-1 rounded text-slate-200'>NGN</span>
+          
+          <button className='hidden sm:flex items-center justify-center h-8 w-8 rounded-full hover:bg-blue-900 transition text-slate-200'>
+            <FaGlobe className='text-sm' />
+          </button>
+
+          <Link to='/help' className='flex items-center justify-center h-8 w-8 rounded-full hover:bg-blue-900 transition text-slate-200'>
+            <FaQuestionCircle className='text-sm' />
           </Link>
-          <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="block py-3 px-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:bg-slate-800 transition">
-            About
-          </Link>
-          <Link to="/community" onClick={() => setMobileMenuOpen(false)} className="block py-3 px-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:bg-slate-800 transition">
-            Community
-          </Link>
-          {isAdminUser && (
-            <Link to="/admin-dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-3 px-4 rounded-xl bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 transition font-semibold">
-              Admin Portal
+
+          {currentUser && currentUser.isAdmin && (
+            <Link to='/admin-dashboard' className='bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-emerald-500 transition'>
+              Admin
             </Link>
           )}
+
+          {currentUser ? (
+            <div className='relative' ref={profileMenuRef}>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className='flex items-center gap-2 focus:outline-none'
+              >
+                <img src={currentUser.avatar} alt='profile' className='rounded-full h-8 w-8 object-cover border-2 border-white' />
+              </button>
+
+              {showProfileMenu && (
+                <div className='absolute right-0 mt-2 w-48 bg-slate-900 text-slate-200 shadow-2xl rounded-xl py-2 z-50 flex flex-col border border-slate-800'>
+                  <div className='px-4 py-2 border-b border-slate-800 text-xs text-slate-400 truncate'>
+                    Signed in as <br /><span className='text-white font-semibold'>{currentUser.username}</span>
+                  </div>
+                  <Link to='/profile' onClick={() => setShowProfileMenu(false)} className='px-4 py-2.5 text-xs hover:bg-slate-800 transition'>Profile Settings</Link>
+                  <Link to='/admin-dashboard' onClick={() => setShowProfileMenu(false)} className='px-4 py-2.5 text-xs hover:bg-slate-800 transition'>My Dashboard</Link>
+                  <Link to='/create-listing' onClick={() => setShowProfileMenu(false)} className='px-4 py-2.5 text-xs hover:bg-slate-800 transition'>Post Listing</Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className='flex items-center gap-2'>
+              <Link to='/sign-up' className='bg-white text-[#003580] px-3 py-1.5 rounded text-xs font-bold hover:bg-slate-100 transition'>
+                Register
+              </Link>
+              <Link to='/sign-in' className='bg-white text-[#003580] px-3 py-1.5 rounded text-xs font-bold hover:bg-slate-100 transition'>
+                Sign in
+              </Link>
+            </div>
+          )}
         </div>
-      )}
+
+      </div>
+
+      {/* Category Navigation Bar with "More" Dropdown near About Us */}
+      {/* Category Navigation Bar with "More" Dropdown near About Us */}
+      <div className='max-w-7xl mx-auto px-4 pb-3 flex items-center gap-3 overflow-visible text-xs sm:text-sm font-medium'>
+        <Link to='/search?type=rent' className='flex items-center gap-2 bg-blue-900/80 hover:bg-blue-900 px-4 py-2 rounded-full border border-blue-400/40 transition whitespace-nowrap'>
+          <FaHome className='text-white text-sm' /> Buy / Rent
+        </Link>
+        <Link to='/properties' className='flex items-center gap-2 hover:bg-blue-900/60 px-4 py-2 rounded-full border border-transparent hover:border-blue-400 transition whitespace-nowrap'>
+          <FaBuilding className='text-slate-300 text-sm' /> Properties
+        </Link>
+        <Link to='/locations' className='flex items-center gap-2 hover:bg-blue-900/60 px-4 py-2 rounded-full border border-transparent hover:border-blue-400 transition whitespace-nowrap'>
+          <FaMapMarkedAlt className='text-slate-300 text-sm' /> Locations
+        </Link>
+        <Link to='/property-types' className='flex items-center gap-2 hover:bg-blue-900/60 px-4 py-2 rounded-full border border-transparent hover:border-blue-400 transition whitespace-nowrap'>
+          <FaLayerGroup className='text-slate-300 text-sm' /> Property Types
+        </Link>
+        <Link to='/about' className='flex items-center gap-2 hover:bg-blue-900/60 px-4 py-2 rounded-full border border-transparent hover:border-blue-400 transition whitespace-nowrap'>
+          <FaInfoCircle className='text-slate-300 text-sm' /> About Us
+        </Link>
+
+        {/* MORE DROPDOWN PLACED NEAR ABOUT US */}
+        <div className='relative whitespace-nowrap' ref={moreMenuRef}>
+          <button
+            onClick={() => setShowMoreMenu(!showMoreMenu)}
+            className='flex items-center gap-1.5 hover:bg-blue-900/60 px-4 py-2 rounded-full border border-transparent hover:border-blue-400 transition text-slate-300 focus:outline-none'
+          >
+            <span>More</span>
+            <FaChevronDown className={`text-[10px] transition-transform ${showMoreMenu ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showMoreMenu && (
+            <div className='absolute left-0 mt-2 w-52 bg-slate-900 text-slate-200 shadow-2xl rounded-xl py-2 z-[100] flex flex-col border border-slate-800 text-left'>
+              <Link to='/how-it-works' onClick={() => setShowMoreMenu(false)} className='px-4 py-2.5 text-xs hover:bg-slate-800 transition'>How It Works</Link>
+              <Link to='/faq' onClick={() => setShowMoreMenu(false)} className='px-4 py-2.5 text-xs hover:bg-slate-800 transition'>Inspection Guide & FAQ</Link>
+              <Link to='/contact' onClick={() => setShowMoreMenu(false)} className='px-4 py-2.5 text-xs hover:bg-slate-800 transition'>Contact Support</Link>
+              <div className='border-t border-slate-800 my-1'></div>
+              <Link to='/terms' onClick={() => setShowMoreMenu(false)} className='px-4 py-2.5 text-xs hover:bg-slate-800 transition'>Terms & Conditions</Link>
+              <Link to='/privacy' onClick={() => setShowMoreMenu(false)} className='px-4 py-2.5 text-xs hover:bg-slate-800 transition'>Privacy Policy</Link>
+            </div>
+          )}
+        </div>
+      </div>
     </header>
   );
 }
