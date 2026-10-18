@@ -16,7 +16,7 @@ const propertySchema = new mongoose.Schema(
     landlord: {
       name: { type: String, required: true },
       phone: { type: String, required: true },
-      whatsapp: { type: String, required: true },
+      location: { type: String, required: true },
       email: { type: String },
     },
     status: { type: String, default: 'published' }, // published, rented, draft

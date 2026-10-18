@@ -3,7 +3,8 @@ import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   updateUserStart, updateUserSuccess, updateUserFailure, 
-  deleteUserStart, deleteUserSuccess, deleteUserFailure 
+  deleteUserStart, deleteUserSuccess, deleteUserFailure ,
+ signOutUserStart, signOutUserSuccess, signOutUserFailure
 } from '../redux/user/userSlice';
 
 export default function Profile() {
@@ -79,6 +80,30 @@ if (file.size > MAX_FILE_SIZE) {
       setUpdateSuccess(true);
     } catch (error) {
       dispatch(updateUserFailure(error.message));
+    }
+  };
+  // 1. SIGN OUT HANDLER WITH CONFIRMATION WINDOW
+  const handleSignOut = async () => {
+    const confirmSignOut = window.confirm("Are you sure you want to sign out?");
+    if (!confirmSignOut) return; // Stop if user clicks Cancel
+
+    try {
+      dispatch(signOutUserStart());
+      const res = await fetch('/api/auth/signout', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await res.json();
+
+      if (data.success === false) {
+        dispatch(signOutUserFailure(data.message));
+        return;
+      }
+
+      dispatch(signOutUserSuccess(data));
+      navigate('/sign-in');
+    } catch (error) {
+      dispatch(signOutUserFailure(error.message));
     }
   };
 
@@ -274,7 +299,7 @@ const handleDeleteUser = async () => {
       <span onClick={handleDeleteUser} className='text-red-700 cursor-pointer hover:underline'>
         Delete Account
       </span>
-      <span className='text-red-700 cursor-pointer hover:underline'>
+      <span onClick={handleSignOut}className='text-red-700 cursor-pointer hover:underline'>
         Sign Out
       </span>
     </div>

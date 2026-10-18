@@ -42,7 +42,7 @@ const [files, setFiles] = useState([]);
     furnished: false,
     landlordName: '',
     landlordPhone: '',
-    lanlordlocation: '',
+    landlordlocation: '',
   });
 
   const [imageUploadError, setImageUploadError] = useState(false);
@@ -120,7 +120,7 @@ const [files, setFiles] = useState([]);
       data.append('file', file);
       data.append('upload_preset', 'mern_project');
 
-      fetch(`https://api.cloudinary.com/v1_1/YOUR_CLOUDINARY_CLOUD_NAME/auto/upload`, {
+      fetch(`https://api.cloudinary.com/v1_1/sifnwo3t/auto/upload`, {
         method: 'POST',
         body: data,
       })
@@ -174,37 +174,72 @@ const [files, setFiles] = useState([]);
     }
   };
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (formData.imageUrls.length < 1)
         return setError('You must upload at least one property image');
       if (+formData.regularPrice < +formData.discountPrice)
-        return setError('Discounted price must be lower than the regular price');
+        return setError('Discounted price must be lower than regular price');
+      
       setLoading(true);
       setError(false);
-      const res = await fetch(
-        params.listingId ? `/api/listing/update/${params.listingId}` : '/api/listing/create',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...formData,
-            userRef: currentUser._id,
-          }),
-        }
-      );
+
+      const isEditing = params.listingId && params.listingId !== 'undefined';
+     const res = await fetch(
+  isEditing
+    ? `/api/listing/update/${params.listingId}`
+    : `/api/listing/create`,
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      ...formData,
+      // Map main listing fields:
+     title: formData.name,
+            description: formData.description,
+            address: formData.address,
+            location: formData.lanlordLocation || formData.address,
+            regularPrice: Number(formData.regularPrice),
+            propertyType: formData.type,
+            bedrooms: Number(formData.bedrooms),
+            bathrooms: Number(formData.bathrooms),
+            furnished: Boolean(formData.furnished),
+            parking: Boolean(formData.parking),
+            imageUrls: formData.imageUrls,
+           landlord: {
+        name: formData.landlordName,
+        // Checks both landlordLocation and lanlordLocation to prevent typo failures
+        location: formData.landlordLocation || formData.lanlordLocation || formData.address,
+        phone: formData.landlordPhone,
+      },
+      userRef: currentUser._id,
+      userEmail: currentUser.email,
+    }),
+  }
+);
+
       const data = await res.json();
       setLoading(false);
+
       if (data.success === false) {
         setError(data.message);
         return;
       }
-      // Trigger notification on success
+
+      // Trigger notification record on success
       await createNotificationRecord(`New property listing created: "${formData.name || 'Executive Property'}"`);
-      navigate(`/listing/${data._id}`);
+      
+      // Admin Redirect Logic: If Admin, send to /admin-dashboard; otherwise send to property view
+      if (currentUser?.isAdmin || currentUser?.email === 'ugochukwumickel15@gmail.com') {
+        navigate('/admin-dashboard');
+      } else {
+        navigate(`/listing/${data._id || data.listing?._id}`);
+      }
+
     } catch (error) {
       setError(error.message);
       setLoading(false);
@@ -277,7 +312,26 @@ const [files, setFiles] = useState([]);
               onChange={handleChange}
               value={formData.lagosArea}
             >
-              {['Lekki Phase 1', 'Ikoyi', 'Victoria Island', 'Ajah', 'Ikeja GRA', 'Lekki Expressway / Chevron', 'Sangotedo', 'Yaba', 'Epe'].map((sector) => (
+              {['Lekki Phase 1', "Agege",
+             "Ajeromi-Ifelodun",
+             "Alimosho",
+             "Amuwo-Odofin",
+             "Apapa",
+             "Badagry",
+            "Eti-Osa",
+            "Ifako-Ijaiye",
+             "Ibeju-Lekki",
+            "Ikeja",
+           "Ikorodu",
+           "Kosofe",
+           "Lagos Island",
+         "Lagos Mainland",
+         "Mushin",
+       "Ojo",
+       "Oshodi-Isolo",
+       "Somolu",
+      "Surulere",
+               'Ikoyi', 'Victoria Island', 'Ajah', 'Ikeja GRA', 'Lekki Expressway / Chevron', 'Sangotedo', 'Yaba', 'Epe'].map((sector) => (
                 <option key={sector} value={sector} className='bg-slate-900 text-white'>
                   {sector}
                 </option>

@@ -1,226 +1,255 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import SwiperCore from 'swiper';
 import { useSelector } from 'react-redux';
-import { Navigation } from 'swiper/modules';
-import { usePaystackPayment } from 'react-paystack'; // Keep this for Paystack
-import 'swiper/css/bundle';
-import { FaBath, FaBed, FaChair, FaMapMarkerAlt, FaParking, FaShare, FaPhoneAlt, FaLock, FaUser } from 'react-icons/fa';
-
-SwiperCore.use([Navigation]);
+import { usePaystackPayment } from 'react-paystack';
+import {
+  FaBed,
+  FaBath,
+  FaParking,
+  FaChair,
+  FaMapMarkerAlt,
+  FaShare,
+  FaPhoneAlt,
+  FaUser,
+  FaChevronLeft,
+  FaChevronRight,
+} from 'react-icons/fa';
 
 export default function Listing() {
   const [listing, setListing] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [userPaid, setUserPaid] = useState(false); // Tracks if payment was made
+  const [userPaid, setUserPaid] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   const params = useParams();
-const listingId = params.listingId || params.id;
+  const listingId = params.listingId || params.id;
   const { currentUser } = useSelector((state) => state.user);
 
   useEffect(() => {
     const fetchListing = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/listing/get/${params.listingId}`);
+        const res = await fetch(`/api/listing/get/${listingId}`);
         const data = await res.json();
+
         if (data.success === false) {
           setError(true);
           setLoading(false);
           return;
         }
-        setListing(data);
+
+        const actualProperty = data.listing || (Array.isArray(data) ? data[0] : data);
+        setListing(actualProperty);
+
+        if (data.unlocked === true) {
+          setUserPaid(true);
+        } else {
+          setUserPaid(false);
+        }
+
         setLoading(false);
         setError(false);
-      } catch (error) {
+      } catch (err) {
         setError(true);
         setLoading(false);
       }
     };
     fetchListing();
-  }, [params.listingId]);
+  }, [listingId]);
 
+  if (loading)
+    return <p className='text-center my-7 text-2xl font-semibold text-slate-700'>Loading property...</p>;
+  if (error || !listing)
+    return <p className='text-center my-7 text-2xl font-semibold text-red-600'>Something went wrong!</p>;
 
- // Paystack configuration
+  const title = listing.title || listing.name || 'Property Listing';
+  const price = Number(listing.regularPrice || listing.price || 0);
+  const address = listing.address || listing.location || 'Location Not Specified';
+  const type = listing.propertyType || listing.type || 'rent';
+  const imageUrls = listing.imageUrls || listing.images || [];
+  const bedrooms = listing.bedrooms || 0;
+  const bathrooms = listing.bathrooms || 0;
+  const furnished = listing.furnished || false;
+  const parking = listing.parking || false;
+  const description = listing.description || 'No description provided.';
+
+  const inspectionFeeNaira = 50000;
+
   const config = {
-    reference: (new Date()).getTime().toString(),
-    email: currentUser?.email || 'user@example.com',
-    amount: (listing?.regularPrice ? Math.min(listing.regularPrice * 0.05, 5000) : 5000) * 100, // e.g., Inspection fee or percentage
-    publicKey: 'pk_test_c135e1ae921e7fd4dee73963e3a1c97e4797f327', // Replace with your actual Paystack public key
+    reference: new Date().getTime().toString(),
+    email: currentUser?.email || 'customer@example.com',
+    amount: inspectionFeeNaira * 100,
+    publicKey: 'pk_test_c135e1ae921e7fd4dee73963e3a1c97e4797f327',
   };
 
-  const onSuccess = (reference) => {
-    setUserPaid(true); // Unlocks the landlord details upon successful payment!
+  const onSuccess = async (reference) => {
+    setUserPaid(true);
+    try {
+      await fetch('/api/paystack/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reference: reference.reference || config.reference,
+          propertyId: listingId,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to log payment on backend:', err);
+    }
   };
 
-  const onClose = () => {
-    console.log('Payment modal closed');
-  };
-
+  const onClose = () => console.log('Payment modal closed');
   const initializePayment = usePaystackPayment(config);
 
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev === 0 ? imageUrls.length - 1 : prev - 1));
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev === imageUrls.length - 1 ? 0 : prev + 1));
+  };
+
   return (
-    <div className="-mt-2">
-      {loading && (
-        <div className="text-center text-xl my-12 font-semibold text-indigo-600 animate-pulse">
-          Loading executive property details...
-        </div>
-      )}
-      {error && (
-        <div className="max-w-6xl mx-auto px-4 text-center text-xl my-12 text-red-500 font-semibold bg-red-50 p-4 rounded-2xl border border-red-100">
-          Something went wrong! Listing not found or access restricted.
-        </div>
-      )}
-      {listing && !loading && !error && (
-        <div>
-          {/* Flush Full-Width Elite Swiper Slider */}
-          <div className="relative w-full overflow-hidden shadow-md bg-slate-900 group">
-            <Swiper navigation pagination={{ clickable: true }} modules={[Navigation]}>
-              {listing.imageUrls.map((url, index) => (
-                <SwiperSlide key={index}>
-                  <div className="h-[450px] md:h-[550px] w-full flex items-center justify-center bg-black">
-                    {url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes('/video/upload/') ? (
-                      <video src={url} controls className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={url} alt="Property slide" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
-                    )}
-                  </div>
-                </SwiperSlide>
-              ))}
-            </Swiper>
+    <main className="overflow-hidden">
+      {/* 1. Multi-Image Side-by-Side Gallery Carousel with Left/Right Scroll */}
+      {imageUrls.length > 0 ? (
+        <div className='relative w-full h-[380px] sm:h-[480px] md:h-[550px] overflow-hidden bg-slate-950 flex justify-center items-center group'>
+          {/* Ambient Blurred Background */}
+          <div
+            className='absolute inset-0 bg-cover bg-center filter blur-xl scale-110 opacity-40 transition-all duration-500'
+            style={{ backgroundImage: `url(${imageUrls[currentImageIndex]})` }}
+          ></div>
 
-            {/* Floating Glassmorphism Share Button */}
-            <div className="absolute top-5 right-5 z-10 bg-white/80 backdrop-blur-md p-3.5 rounded-full flex justify-center items-center cursor-pointer shadow-lg hover:bg-white transition-all"
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              }}
+          {/* Active Main Image */}
+          <img
+            src={imageUrls[currentImageIndex]}
+            alt={title}
+            className='relative z-10 w-full h-full object-contain transition-all duration-500'
+          />
+
+          {/* Left Navigation Arrow */}
+          {imageUrls.length > 1 && (
+            <button
+              onClick={prevImage}
+              className='absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/80 text-white p-3 rounded-full backdrop-blur-sm transition'
             >
-              <FaShare className="text-slate-800 text-base" />
+              <FaChevronLeft className='text-lg' />
+            </button>
+          )}
+
+          {/* Right Navigation Arrow */}
+          {imageUrls.length > 1 && (
+            <button
+              onClick={nextImage}
+              className='absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/80 text-white p-3 rounded-full backdrop-blur-sm transition'
+            >
+              <FaChevronRight className='text-lg' />
+            </button>
+          )}
+
+          {/* Image Counter Badge */}
+          {imageUrls.length > 1 && (
+            <div className='absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-slate-900/80 text-white text-xs px-3 py-1 rounded-full backdrop-blur-md font-semibold'>
+              {currentImageIndex + 1} / {imageUrls.length}
             </div>
-            {copied && (
-              <div className="absolute top-20 right-5 z-10 bg-slate-900/90 backdrop-blur-md text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-xl">
-                Link copied to clipboard! ✓
-              </div>
-            )}
+          )}
+
+          {/* Share Button */}
+          <div
+            className='absolute top-4 right-4 z-20 rounded-full w-10 h-10 sm:w-12 sm:h-12 flex justify-center items-center bg-white/90 backdrop-blur-md cursor-pointer shadow-lg hover:bg-white transition'
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+          >
+            <FaShare className='text-slate-700 text-sm sm:text-base' />
           </div>
-
-          {/* Sahand's Exact Minimalist Text Layout Style */}
-          <main className="max-w-6xl mx-auto px-3 my-6">
-            
-            {/* Title, Price & Type in a single clean row like Sahand */}
-            <div className="mb-4">
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
-                {listing.name} - ₦{listing.regularPrice.toLocaleString()}
-                {listing.type === 'rent' && ' / year'}
-              </h1>
-              
-              <p className="flex items-center gap-2 text-slate-600 text-sm mt-2">
-                <FaMapMarkerAlt className="text-green-700" />
-                {listing.address}
-              </p>
-
-              <div className="flex gap-4 mt-3">
-                <span className="bg-red-900 text-white.w-full max-w-[200px] text-center p-1 rounded-md text-sm font-semibold">
-                  {listing.type === 'rent' ? 'For Rent' : 'For Sale'}
-                </span>
-                {listing.offer && (
-                  <span className="bg-green-900 text-white w-full max-w-[200px] text-center p-1 rounded-md text-sm font-semibold">
-                    ₦{listing.discountPrice.toLocaleString()} Discount
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
-              <div className="lg:col-span-2 flex flex-col gap-4">
-                
-                {/* Description - Completely borderless and flat, exactly like Sahand */}
-                <p className="text-slate-800 text-sm leading-relaxed">
-                  <span className="font-semibold text-black">Description - </span>
-                  {listing.description}
-                </p>
-
-                {/* Key Specifications (Bedrooms, Bathrooms, etc.) */}
-                <ul className="text-green-900 font-semibold text-sm flex flex-wrap items-center gap-4 sm:gap-6">
-                  <li className="flex items-center gap-1 whitespace-nowrap">
-                    <FaBed className="text-lg" />
-                    {listing.bedrooms} {listing.bedrooms > 1 ? 'beds' : 'bed'}
-                  </li>
-                  <li className="flex items-center gap-1 whitespace-nowrap">
-                    <FaBath className="text-lg" />
-                    {listing.bathrooms} {listing.bathrooms > 1 ? 'baths' : 'bath'}
-                  </li>
-                  <li className="flex items-center gap-1 whitespace-nowrap">
-                    <FaChair className="text-lg" />
-                    {listing.furnished ? 'Furnished' : 'Unfurnished'}
-                  </li>
-                  <li className="flex items-center gap-1 whitespace-nowrap">
-                    <FaParking className="text-lg" />
-                    {listing.parking ? 'Parking spot' : 'No Parking'}
-                  </li>
-                </ul>
-
-              </div>
-
-              {/* Right Column / Bottom Section: Landlord Contact & Paystack Unlock */}
-          <div className='max-w-5xl mx-auto px-4 my-8'>
-            {currentUser && listing.userRef !== currentUser._id && (
-              <div className='bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col items-center text-center'>
-                <h3 className='text-xl font-bold text-white mb-2'>
-                  Unlock Landlord Contact & Exact Location
-                </h3>
-                <p className='text-slate-400 text-xs sm:text-sm mb-6'>
-                  Make a secure inspection/processing payment via Paystack to instantly reveal the property owner&apos;s name, direct phone number, and location details.
-                </p>
-
-                {userPaid || listing.isPaid ? (
-                  /* UNLOCKED VIEW: Shows Name, Phone, and Location entered from CreateListing */
-                  <div className='w-full max-w-lg p-5 bg-emerald-950/40 border border-[#10B981] rounded-xl flex flex-col gap-3 text-left shadow-lg'>
-                    <div className='flex items-center justify-between border-b border-emerald-800/50 pb-2'>
-                      <span className='text-xs uppercase font-bold text-[#10B981] tracking-wider'>Payment Verified ✓</span>
-                      <span className='text-xs text-slate-300 font-mono'>Direct Access Unlocked</span>
-                    </div>
-                    <div className='text-sm text-slate-200 space-y-2 pt-1'>
-                      <p className='flex items-center gap-2'>
-                        <FaUser className='text-[#10B981]' />
-                        <strong className='text-white'>Landlord / Agent:</strong> {listing.landlordName || 'Property Manager'}
-                      </p>
-                      <p className='flex items-center gap-2'>
-                        <FaPhoneAlt className='text-[#10B981]' />
-                        <strong className='text-white'>Direct Phone:</strong> 
-                        <a href={`tel:${listing.landlordPhone}`} className='text-[#10B981] underline font-mono'>
-                          {listing.landlordPhone || '+234 800 000 0000'}
-                        </a>
-                      </p>
-                      <p className='flex items-center gap-2'>
-                        <FaMapMarkerAlt className='text-[#10B981]' />
-                        <strong className='text-white'>Exact Location:</strong> {listing.address}, {listing.lagosArea || 'Lagos'}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  /* LOCKED VIEW: Paystack Button */
-                  <button
-                    onClick={() => initializePayment({ onSuccess, onClose })}
-                    className='w-full max-w-md py-3.5 px-6 bg-[#10B981] text-[#0A192F] font-extrabold rounded-xl uppercase hover:bg-emerald-400 transition shadow-lg tracking-wider text-sm flex items-center justify-center gap-2'
-                  >
-                    <FaLock className='text-xs' />
-                    <span>Pay Inspection Fee to View Contact</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-            </div>
-          </main>
+          {copied && (
+            <p className='absolute top-16 right-4 z-20 bg-slate-900 text-white px-3 py-1.5 rounded-md text-xs shadow-md'>
+              Link copied!
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className='w-full h-64 bg-slate-200 flex items-center justify-center text-slate-500 font-medium'>
+          No Property Images Uploaded
         </div>
       )}
-    </div>
+
+      {/* 2. Content Details (Sahand Borderless Layout) */}
+      <div className='flex flex-col max-w-4xl mx-auto p-3 my-7 gap-4'>
+        <p className='text-2xl font-semibold text-slate-800'>
+          {title} - ₦{price.toLocaleString()}
+          {type === 'rent' && ' / year'}
+        </p>
+
+        <p className='flex items-center gap-2 text-slate-600 text-sm'>
+          <FaMapMarkerAlt className='text-green-700' />
+          {address}
+        </p>
+
+        <div className='flex gap-4'>
+          <p className='bg-red-900 w-full max-w-[200px] text-white text-center p-1 rounded-md text-sm font-semibold capitalize'>
+            {type === 'rent' ? 'For Rent' : 'For Sale'}
+          </p>
+        </div>
+
+        <p className='text-slate-800 text-sm leading-relaxed'>
+          <span className='font-semibold text-black'>Description - </span>
+          {description}
+        </p>
+
+        <ul className='text-green-900 font-semibold text-sm flex flex-wrap items-center gap-4 sm:gap-6 my-2'>
+          <li className='flex items-center gap-1 whitespace-nowrap'>
+            <FaBed className='text-lg' />
+            {bedrooms} {bedrooms === 1 ? 'bed' : 'beds'}
+          </li>
+          <li className='flex items-center gap-1 whitespace-nowrap'>
+            <FaBath className='text-lg' />
+            {bathrooms} {bathrooms === 1 ? 'bath' : 'baths'}
+          </li>
+          <li className='flex items-center gap-1 whitespace-nowrap'>
+            <FaChair className='text-lg' />
+            {furnished ? 'Furnished' : 'Unfurnished'}
+          </li>
+          <li className='flex items-center gap-1 whitespace-nowrap'>
+            <FaParking className='text-lg' />
+            {parking ? 'Parking spot' : 'No Parking'}
+          </li>
+        </ul>
+
+        {/* 3. Paystack Inspection Lock */}
+        <div className='mt-4 pt-2'>
+          {!userPaid ? (
+            <div className='flex flex-col items-start gap-2'>
+              <p className='text-slate-600 text-sm'>
+                Inspection Fee: <span className='font-bold text-slate-900'>₦{inspectionFeeNaira.toLocaleString()}</span>
+              </p>
+              <button
+                onClick={() => initializePayment(onSuccess, onClose)}
+                className='text-emerald-700 font-bold hover:text-emerald-900 underline underline-offset-4 text-base cursor-pointer bg-transparent p-0 border-none'
+              >
+                Pay inspection fee to view landlord contact details →
+              </button>
+            </div>
+          ) : (
+            <div className='flex flex-col gap-2 text-slate-800 text-sm mt-2'>
+              <p className='font-bold text-slate-900 flex items-center gap-2 text-base'>
+                <FaUser className='text-emerald-700' /> Landlord & Agent Contact Details:
+              </p>
+              <p><span className='font-semibold'>Name:</span> {listing.landlord?.name || 'N/A'}</p>
+              <p className='flex items-center gap-2'>
+                <FaPhoneAlt className='text-emerald-700' />
+                <span className='font-semibold'>Phone:</span> {listing.landlord?.phone || 'N/A'}
+              </p>
+              <p><span className='font-semibold'>Office Address:</span> {listing.landlord?.location || listing.landlord?.address || 'N/A'}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
   );
 }

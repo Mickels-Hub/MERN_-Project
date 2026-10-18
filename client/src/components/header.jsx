@@ -100,7 +100,7 @@ export default function Header() {
                   </div>
                   <Link to='/profile' onClick={() => setShowProfileMenu(false)} className='px-4 py-2 hover:bg-slate-800 transition'>Profile Settings</Link>
                   <Link 
-                    to={currentUser?.isAdmin ? '/admin-dashboard' : '/dashboard'} 
+                    to={(currentUser?.isAdmin || currentUser?.email === 'ugochukwumickel15@gmail.com') ? '/admin-dashboard' : '/dashboard'}
                     onClick={() => setShowProfileMenu(false)} 
                     className='px-4 py-2 hover:bg-slate-800 transition'
                   >

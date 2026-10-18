@@ -2,11 +2,35 @@ import mongoose from 'mongoose';
 
 const contactUnlockSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    propertyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Property', required: true },
-    transactionReference: { type: String, required: true, unique: true },
-    amount: { type: Number, required: true, default: 45000 },
-    status: { type: String, default: 'success' },
+    userId: {
+      type: String,
+      required: true,
+    },
+    userName: {
+      type: String,
+      required: true,
+    },
+    userEmail: {
+      type: String,
+      required: true,
+    },
+    propertyId: {
+      type: String,
+      required: true,
+    },
+    propertyTitle: {
+      type: String,
+      required: true,
+    },
+    amountPaid: {
+      type: Number,
+      required: true,
+    },
+    paymentReference: {
+      type: String,
+      required: true,
+      unique: true,
+    },
   },
   { timestamps: true }
 );

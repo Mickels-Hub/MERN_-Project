@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import userRoutes from './routes/user.routes.js';
 import authRoutes from './routes/auth.routes.js';
-import listingRoutes from './routes/listing.route.js';
+import listingRouter from './routes/listing.route.js';
 import paystackRouter from './routes/paystack.route.js';
 import cors from 'cors';
 import adminRouter from './routes/admin.route.js';
@@ -36,7 +36,7 @@ app.use(cookieParser());
 // Move all route declarations here, BEFORE app.listen():
 app.use('/api/user', userRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/listing', listingRoutes);
+app.use('/api/listing', listingRouter);
 app.use('/api/paystack', paystackRouter);
 app.use('/api/admin', adminRouter);
 
