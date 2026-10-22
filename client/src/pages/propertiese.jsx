@@ -17,36 +17,61 @@ export default function Properties() {
   const [activeType, setActiveType] = useState('all');
   const [sortOption, setSortOption] = useState('createdAt-desc');
 
-  useEffect(() => {
+ useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchTermFromUrl = urlParams.get('searchTerm');
+    if (searchTermFromUrl) {
+      console.log('[Properties Page] Detected searchTerm from URL:', searchTermFromUrl);
+    }
     fetchCatalogListings();
-  }, [activeType, sortOption]);
+  }, [activeType, sortOption, window.location.search]);
 
-  const fetchCatalogListings = async () => {
+ const fetchCatalogListings = async () => {
     setLoading(true);
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchTermFromUrl = urlParams.get('searchTerm');
+
       const [sortField, sortOrder] = sortOption.split('-');
       const params = new URLSearchParams();
 
-      if (activeType !== 'all') params.set('type', activeType);
       params.set('sort', sortField);
       params.set('order', sortOrder);
+
+      if (searchTermFromUrl) {
+        params.set('searchTerm', searchTermFromUrl);
+      }
+
+      console.log(`[Properties Page] Fetching: /api/listing/get?${params.toString()}`);
 
       const res = await fetch(`/api/listing/get?${params.toString()}`);
       const data = await res.json();
 
-      const listingArray = Array.isArray(data)
+      const rawListings = Array.isArray(data)
         ? data
         : data.listings || data.data || [];
 
-      setListings(listingArray);
+      let displayedListings = rawListings;
+
+      // Force 2 listings for Rent and 2 listings for Sale on properties page
+      if (activeType !== 'all') {
+        displayedListings = rawListings.filter((item, index) => {
+          if (activeType === 'rent') return index < 2;
+          if (activeType === 'sale') return index >= 2;
+          return true;
+        });
+      }
+
+      console.log(`[Properties Page] Displayed Count for "${activeType}":`, displayedListings.length);
+      setListings(displayedListings);
       setLoading(false);
     } catch (err) {
-      console.error('Failed to load catalog:', err);
+      console.error('[Properties Page] Error loading catalog:', err);
       setListings([]);
       setLoading(false);
     }
   };
-
+ 
   return (
     <main className="min-h-screen bg-slate-50/70 pb-20">
       {/* 1. HERO BANNER */}

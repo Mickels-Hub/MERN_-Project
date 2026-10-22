@@ -3,7 +3,8 @@ import { verifyToken } from '../utils/verifyUser.js';
 import { 
   createListing,
   getListings, 
-  getListingById 
+  getListingById,
+  
 } from '../controllers/listing.controller.js';
 
 const router = express.Router();

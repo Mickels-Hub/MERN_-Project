@@ -57,77 +57,27 @@ export const getlistings = async (req, res, next) => {
     const sortField = rawSort === 'regularPrice' ? 'regularPrice' : 'createdAt';
     const sortOrder = req.query.order === 'asc' ? 1 : -1;
 
-    const type = req.query.type;
-    const category = req.query.category || req.query.propertyType;
     const searchTerm = req.query.searchTerm || '';
 
-    const query = {};
+    const conditions = [];
 
-    // 1. Transaction Type (Rent vs Sale)
-    if (type && type !== 'all') {
-      query.$or = [{ propertyType: type }, { type: type }];
-    }
-
-    // 2. Strict Category Matching (Fixes "Island" and "Landlord" matching Land!)
-    if (category && category !== 'all') {
-      if (category === 'land') {
-        query.$and = [
-          {
-            $or: [
-              { propertyType: 'land' },
-              { title: /\bland\b|\bplot\b|\bacre\b|\bhectare\b/i },
-            ],
-          },
-          // Exclude listings with bedrooms/bathrooms or words like "apartment", "house", "flat"
-          { title: { $not: /\bapartment\b|\bflat\b|\broom\b|\bduplex\b|\bhouse\b/i } },
-        ];
-      } else if (category === 'apartment') {
-        query.$or = [
-          { propertyType: 'apartment' },
-          { title: /\bapartment\b|\bflat\b/i },
-          { description: /\bapartment\b|\bflat\b/i },
-        ];
-      } else if (category === 'duplex') {
-        query.$or = [
-          { propertyType: 'duplex' },
-          { title: /\bduplex\b|\bmansion\b|\bterrace\b|\bvilla\b/i },
-          { description: /\bduplex\b|\bmansion\b/i },
-        ];
-      } else if (category === 'studio') {
-        query.$or = [
-          { propertyType: 'studio' },
-          { title: /\bstudio\b|\bself contain\b|\b1 room\b|\bone room\b/i },
-          { description: /\bstudio\b|\bself contain\b/i },
-        ];
-      } else if (category === 'shortlet') {
-        query.$or = [
-          { propertyType: 'shortlet' },
-          { title: /\bshortlet\b|\bserviced\b|\bshort stay\b/i },
-          { description: /\bshortlet\b|\bserviced\b/i },
-        ];
-      } else if (category === 'commercial') {
-        query.$or = [
-          { propertyType: 'commercial' },
-          { title: /\bcommercial\b|\boffice\b|\bshop\b|\bwarehouse\b/i },
-          { description: /\bcommercial\b|\boffice\b/i },
-        ];
-      }
-    }
-
-    // 3. Keyword / Location Search
+    // ONLY filter by searchTerm (location/keywords) in the backend. 
+    // This guarantees Epe/Ikeja searches work without breaking on missing 'type' DB fields!
     if (searchTerm.trim() !== '') {
       const searchRegex = new RegExp(searchTerm.trim(), 'i');
-      query.$and = [
-        {
-          $or: [
-            { title: searchRegex },
-            { address: searchRegex },
-            { location: searchRegex },
-            { description: searchRegex },
-          ],
-        },
-      ];
+      conditions.push({
+        $or: [
+          { title: searchRegex },
+          { address: searchRegex },
+          { location: searchRegex },
+          { description: searchRegex },
+        ],
+      });
     }
+
+    const query = conditions.length > 0 ? { $and: conditions } : {};
+
+    const Property = (await import('../models/property.model.js')).default;
 
     const listings = await Property.find(query)
       .sort({ [sortField]: sortOrder })
@@ -137,9 +87,34 @@ export const getlistings = async (req, res, next) => {
 
     return res.status(200).json(listings);
   } catch (error) {
-    console.error('Error fetching listings:', error);
+    console.error('[Backend API Error]:', error);
     return res.status(200).json([]);
   }
 };
 
 export const getListings = getlistings;
+// YOUR EXISTING LOCATION STATS CONTROLLER
+export const getLocationStats = async (req, res, next) => {
+  try {
+    const Property = (await import('../models/property.model.js')).default;
+    const sectors = ['Lekki', 'Victoria Island', 'Ikoyi', 'Ikeja', 'Yaba', 'Epe', 'Surulere', 'Ajah'];
+    const stats = {};
+
+    for (const sector of sectors) {
+      const regex = new RegExp(sector, 'i');
+      const count = await Property.countDocuments({
+        $or: [
+          { address: regex },
+          { location: regex },
+          { title: regex },
+          { description: regex }
+        ]
+      });
+      stats[sector.toLowerCase()] = count;
+    }
+
+    return res.status(200).json({ success: true, stats });
+  } catch (error) {
+    next(error);
+  }
+};

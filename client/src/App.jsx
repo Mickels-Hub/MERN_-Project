@@ -18,6 +18,7 @@ import Dashboard from './pages/dashboard.jsx';
 import Properties from './pages/propertiese.jsx';
 import PropertyTypes from './pages/PropertyTypes.jsx';
 import CategoryView from './pages/CategoryView';
+import LocationView from './pages/LocationView';
 
 // Dropdown Pages
 import HowItWorks from './pages/how-it-works.jsx';
@@ -50,6 +51,7 @@ export default function App() {
         <Route path='/properties' element={<Properties />} />
         <Route path='/property-types' element={<PropertyTypes />} />
         <Route path="/category/:categoryName" element={<CategoryView />} /> {/* <-- NEW ROUTE */}
+        <Route path="/location/:locationName" element={<LocationView />} />
         <Route path='/locations' element={<Locations />} />
 
         {/* More Dropdown Routes */}
