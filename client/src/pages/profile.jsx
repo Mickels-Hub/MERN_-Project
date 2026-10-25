@@ -286,12 +286,15 @@ const handleDeleteUser = async () => {
             </button>
 
            {/* Restored Create Listing Button */}
-      <Link
-        className='bg-green-700 text-white p-3 rounded-xl uppercase text-center font-bold hover:opacity-95'
-        to={'/create-listing'}
-      >
-        Create Listing
-      </Link>
+      {/* ONLY render Create Listing for Admin accounts */}
+{currentUser && currentUser.isAdmin && (
+  <Link
+    to="/create-listing"
+    className="bg-[#13865D] hover:bg-[#102A43] text-white font-semibold p-3 rounded-lg text-center uppercase tracking-wide transition-colors mt-3 block"
+  >
+    Create Listing
+  </Link>
+)}
     </form>
 
     {/* Restored Delete Account and Sign Out Actions */}

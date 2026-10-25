@@ -26,7 +26,7 @@ export default function Properties() {
     fetchCatalogListings();
   }, [activeType, sortOption, window.location.search]);
 
- const fetchCatalogListings = async () => {
+const fetchCatalogListings = async () => {
     setLoading(true);
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -53,11 +53,31 @@ export default function Properties() {
 
       let displayedListings = rawListings;
 
-      // Force 2 listings for Rent and 2 listings for Sale on properties page
       if (activeType !== 'all') {
-        displayedListings = rawListings.filter((item, index) => {
-          if (activeType === 'rent') return index < 2;
-          if (activeType === 'sale') return index >= 2;
+        displayedListings = rawListings.filter((item) => {
+          const rawType = String(item.type || item.transactionType || '').toLowerCase();
+          const title = String(item.title || '').toLowerCase();
+          const desc = String(item.description || '').toLowerCase();
+          const fullText = `${title} ${desc}`;
+
+          // Check if explicit property indicators mark this as Rent
+          const isExplicitRent =
+            rawType === 'rent' ||
+            item.offer === true ||
+            fullText.includes('/yr') ||
+            fullText.includes('per year') ||
+            fullText.includes('for rent') ||
+            fullText.includes('bachelors');
+
+          if (activeType === 'rent') {
+            return isExplicitRent;
+          }
+
+          if (activeType === 'sale') {
+            // If it's not rent, it's for sale
+            return !isExplicitRent;
+          }
+
           return true;
         });
       }

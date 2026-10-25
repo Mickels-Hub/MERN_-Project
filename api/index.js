@@ -11,6 +11,7 @@ import listingRouter from './routes/listing.route.js';
 import paystackRouter from './routes/paystack.route.js';
 import cors from 'cors';
 import adminRouter from './routes/admin.route.js';
+import dashboardRouter from './routes/dashboard.route.js';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/listing', listingRouter);
 app.use('/api/paystack', paystackRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000!');
