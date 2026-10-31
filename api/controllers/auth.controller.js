@@ -16,7 +16,7 @@ export const signup = async (req, res, next) => {
   }
 };
 
-// User Login / Sign In
+// User Login / Sign In (Supports both Regular Users and Admin)
 export const signin = async (req, res, next) => {
   const { email, password } = req.body;
   try {
@@ -26,10 +26,10 @@ export const signin = async (req, res, next) => {
     const validPassword = bcryptjs.compareSync(password, validUser.password);
     if (!validPassword) return next(errorHandler(401, 'Wrong credentials!'));
 
-    // Check if user is admin or explicitly force Admin for your email
+    // Check if user is admin or explicitly force Admin for your specific email
     const isAdminUser = validUser.isAdmin || validUser.email === 'ugochukwumickel15@gmail.com';
 
-    // Generate JWT token with correct admin flag
+    // Generate JWT token with user id and admin status
     const token = jwt.sign(
       { id: validUser._id, isAdmin: isAdminUser },
       process.env.JWT_SECRET
@@ -37,13 +37,23 @@ export const signin = async (req, res, next) => {
 
     const { password: pass, ...rest } = validUser._doc;
 
-    // Send HTTP-Only Cookie + User Data Response
+    const expiryDate = new Date(Date.now() + 3600000 * 24 * 7); // 7 days
+
     res
       .cookie('access_token', token, {
         httpOnly: true,
+        expires: expiryDate,
+        secure: false,
+        sameSite: 'lax',
+        path: '/',
       })
       .status(200)
-      .json({ ...rest, isAdmin: isAdminUser });
+      .json({ 
+        ...rest, 
+        isAdmin: isAdminUser, 
+        token // <--- Added token to response payload!
+      });
+
   } catch (error) {
     next(error);
   }
@@ -60,19 +70,22 @@ export const google = async (req, res, next) => {
         process.env.JWT_SECRET
       );
       const { password: pass, ...rest } = user._doc;
+      const expiryDate = new Date(Date.now() + 3600000 * 24 * 7);
       res
-        .cookie('access_token', token, { httpOnly: true })
+        .cookie('access_token', token, {
+          httpOnly: true,
+          expires: expiryDate,
+          secure: false,
+          sameSite: 'lax',
+          path: '/',
+        })
         .status(200)
-        .json({ ...rest, isAdmin: isAdminUser });
+        .json({ ...rest, isAdmin: isAdminUser, token });
     } else {
-      const generatedPassword =
-        Math.random().toString(36).slice(-8) +
-        Math.random().toString(36).slice(-8);
+      const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
       const hashedPassword = bcryptjs.hashSync(generatedPassword, 10);
       const newUser = new User({
-        username:
-          req.body.name.split(' ').join('').toLowerCase() +
-          Math.random().toString(36).slice(-4),
+        username: req.body.name.split(' ').join('').toLowerCase() + Math.random().toString(36).slice(-4),
         email: req.body.email,
         password: hashedPassword,
         avatar: req.body.photo,
@@ -85,10 +98,17 @@ export const google = async (req, res, next) => {
         process.env.JWT_SECRET
       );
       const { password: pass, ...rest } = newUser._doc;
+      const expiryDate = new Date(Date.now() + 3600000 * 24 * 7);
       res
-        .cookie('access_token', token, { httpOnly: true })
+        .cookie('access_token', token, {
+          httpOnly: true,
+          expires: expiryDate,
+          secure: false,
+          sameSite: 'lax',
+          path: '/',
+        })
         .status(200)
-        .json({ ...rest, isAdmin: isAdminUser });
+        .json({ ...rest, isAdmin: isAdminUser, token });
     }
   } catch (error) {
     next(error);
@@ -98,7 +118,7 @@ export const google = async (req, res, next) => {
 // User Sign Out
 export const signOut = async (req, res, next) => {
   try {
-    res.clearCookie('access_token');
+    res.clearCookie('access_token', { path: '/' });
     res.status(200).json({ success: true, message: 'User has been logged out successfully!' });
   } catch (error) {
     next(error);

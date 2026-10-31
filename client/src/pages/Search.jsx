@@ -65,18 +65,35 @@ export default function Search() {
     }
   }, [location.search]);
 
-  const handleSubmit = (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!sidebarData.searchTerm.trim()) return;
 
+    const queryTerm = sidebarData.searchTerm?.trim();
+    if (!queryTerm) return;
+
+    // 1. Record search query in history backend and WAIT for it to finish
+    try {
+      await fetch('/api/user/save-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ query: queryTerm }),
+      });
+    } catch (err) {
+      console.error('Failed to save search history:', err);
+    }
+
+    // 2. Update URL parameters to trigger the listing search AFTER saving
     const urlParams = new URLSearchParams();
-    urlParams.set('searchTerm', sidebarData.searchTerm.trim());
+    urlParams.set('searchTerm', queryTerm);
     if (sidebarData.type) urlParams.set('type', sidebarData.type);
-    if (sidebarData.budget && sidebarData.budget !== 'all')
+    if (sidebarData.budget && sidebarData.budget !== 'all') {
       urlParams.set('budget', sidebarData.budget);
+    }
 
     navigate(`/search?${urlParams.toString()}`);
   };
+
 
   return (
     <main className="min-h-screen bg-slate-50 pb-12">

@@ -1,119 +1,130 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 
 export default function UserOverview() {
   const { currentUser } = useSelector((state) => state.user);
-  const [data, setData] = useState({ stats: {}, recentlyViewed: [] });
+
+  const [stats, setStats] = useState({
+    savedCount: 0,
+    comparedCount: 0,
+    searchesCount: 0,
+    contactUnlocksCount: 0,
+  });
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchOverviewData();
-  }, []);
+    const fetchDashboardData = async () => {
+      try {
+        const res = await fetch('/api/dashboard/overview', {
+          credentials: 'include',
+        });
+        const data = await res.json();
 
-  const fetchOverviewData = async () => {
-    try {
-      const res = await fetch('/api/dashboard/overview');
-      const result = await res.json();
-      if (result.success) {
-        setData(result);
+        if (data.success && data.stats) {
+          setStats({
+            savedCount: data.stats.savedProperties || 0,
+            comparedCount: data.stats.comparedProperties || 0,
+            searchesCount: data.stats.recentSearches || 0,
+            contactUnlocksCount: data.stats.contactAccess || 0,
+          });
+
+          if (data.recentlyViewed) {
+            setRecentlyViewed(data.recentlyViewed);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard overview:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    } catch (err) {
-      console.error(err);
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchDashboardData();
+  }, []);
 
   if (loading) {
     return <div className="py-20 text-center text-[#64748B]">Loading your dashboard...</div>;
   }
 
-  const { stats, recentlyViewed } = data;
-
   return (
-    <div className="space-y-10">
-      
+    <div className="space-y-10 p-6">
       {/* Welcome Banner */}
-      <div className="bg-white p-8 rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#102A43]">
-            Welcome back, {currentUser.username}
+          <h1 className="text-3xl font-bold text-gray-900">
+            Welcome back, {currentUser?.username || 'user'}
           </h1>
-          <p className="text-[#64748B] text-base mt-1">
+          <p className="text-[#64748B] mt-1">
             Continue your property search and keep your shortlisted homes organized.
           </p>
         </div>
         <Link
-          to="/properties"
-          className="bg-[#13865D] hover:bg-[#102A43] text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors shadow-sm"
+          to="/search"
+          className="bg-[#0D9488] hover:bg-[#0F766E] text-white px-6 py-3 rounded-xl font-medium transition-colors"
         >
           Find a Property
         </Link>
       </div>
 
-      {/* Summary Statistics */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <p className="text-sm font-semibold text-[#64748B]">Saved Properties</p>
-          <p className="text-3xl font-bold text-[#102A43] mt-2">{stats.savedProperties || 0}</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <span className="text-sm font-medium text-[#64748B]">Saved Properties</span>
+          <h2 className="text-4xl font-bold text-gray-900 mt-2">{stats.savedCount}</h2>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <p className="text-sm font-semibold text-[#64748B]">Compared Properties</p>
-          <p className="text-3xl font-bold text-[#102A43] mt-2">{stats.comparedProperties || 0}</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <span className="text-sm font-medium text-[#64748B]">Compared Properties</span>
+          <h2 className="text-4xl font-bold text-gray-900 mt-2">{stats.comparedCount}</h2>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <p className="text-sm font-semibold text-[#64748B]">Saved Searches</p>
-          <p className="text-3xl font-bold text-[#102A43] mt-2">{stats.recentSearches || 0}</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <span className="text-sm font-medium text-[#64748B]">Saved Searches</span>
+          <h2 className="text-4xl font-bold text-gray-900 mt-2">{stats.searchesCount}</h2>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <p className="text-sm font-semibold text-[#64748B]">Contact Access Unlocked</p>
-          <p className="text-3xl font-bold text-[#102A43] mt-2">{stats.contactAccess || 0}</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <span className="text-sm font-medium text-[#64748B]">Contact Access Unlocked</span>
+          <h2 className="text-4xl font-bold text-gray-900 mt-2">{stats.contactUnlocksCount}</h2>
         </div>
       </div>
 
-      {/* Recently Viewed Properties */}
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-[#102A43]">Recently Viewed Properties</h2>
-          <Link to="/properties" className="text-sm font-semibold text-[#13865D] hover:underline">
+      {/* Recently Viewed Properties Section */}
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-gray-900">Recently Viewed Properties</h3>
+          <Link to="/properties" className="text-[#0D9488] hover:underline font-medium text-sm">
             View All Properties →
           </Link>
         </div>
 
         {recentlyViewed.length === 0 ? (
-          <div className="bg-white p-10 rounded-2xl text-center text-[#64748B]">
-            <p>You haven't viewed any properties recently.</p>
-            <Link to="/properties" className="mt-4 inline-block bg-[#102A43] text-white px-6 py-2.5 rounded-xl text-sm font-semibold">
+          <div className="py-12 text-center">
+            <p className="text-[#64748B] mb-4">You haven't viewed any properties recently.</p>
+            <Link
+              to="/search"
+              className="bg-[#0F172A] hover:bg-black text-white px-6 py-3 rounded-xl font-medium transition-colors inline-block"
+            >
               Explore Properties
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {recentlyViewed.map((prop) => (
-              <div key={prop._id} className="bg-white rounded-2xl overflow-hidden shadow-sm flex flex-col">
-                <img src={prop.imageUrls?.[0]} alt={prop.title} className="h-48 w-full object-cover" />
-                <div className="p-4 flex flex-col flex-1 justify-between">
-                  <div>
-                    <h3 className="font-bold text-[#102A43] truncate">{prop.title}</h3>
-                    <p className="text-xs text-[#64748B] mt-1">{prop.address || prop.location}</p>
-                    <p className="text-sm font-bold text-[#13865D] mt-2">
-                      ₦{prop.regularPrice?.toLocaleString()} {prop.type === 'rent' ? '/yr' : ''}
-                    </p>
-                  </div>
-                  <Link
-                    to={`/listing/${prop._id}`}
-                    className="mt-4 block text-center bg-[#102A43] text-white text-xs font-semibold py-2 rounded-lg hover:bg-[#13865D] transition-colors"
-                  >
-                    View Property
-                  </Link>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {recentlyViewed.map((property) => (
+              <div key={property._id} className="border rounded-xl overflow-hidden shadow-sm">
+                <img
+                  src={property.imageUrls?.[0] || 'https://via.placeholder.com/300'}
+                  alt={property.name}
+                  className="h-48 w-full object-cover"
+                />
+                <div className="p-4">
+                  <h4 className="font-bold text-gray-900 truncate">{property.name}</h4>
+                  <p className="text-sm text-[#64748B] truncate">{property.address}</p>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
-
     </div>
   );
 }

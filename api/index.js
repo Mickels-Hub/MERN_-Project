@@ -12,6 +12,7 @@ import paystackRouter from './routes/paystack.route.js';
 import cors from 'cors';
 import adminRouter from './routes/admin.route.js';
 import dashboardRouter from './routes/dashboard.route.js';
+import reportRouter from './routes/report.route.js';
 
 dotenv.config();
 
@@ -30,9 +31,10 @@ app.use(cors({
   credentials: true,
 }));
 
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(cookieParser());
+
 
 // Move all route declarations here, BEFORE app.listen():
 app.use('/api/user', userRoutes);
@@ -41,6 +43,7 @@ app.use('/api/listing', listingRouter);
 app.use('/api/paystack', paystackRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/reports', reportRouter);
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000!');

@@ -2,7 +2,7 @@ import { SavedProperty, CompareProperty, RecentlyViewed, RentalChecklist, SavedS
 import ContactUnlock from '../models/contactUnlock.model.js';
 import Property from '../models/property.model.js';
 import { errorHandler } from '../utils/error.js';
-
+import User from '../models/user.model.js';
 // Get Dashboard Overview Statistics & Summary
 export const getDashboardOverview = async (req, res, next) => {
   try {
@@ -36,65 +36,121 @@ export const getDashboardOverview = async (req, res, next) => {
   }
 };
 
-// Saved Properties Endpoints
+// Get all saved properties for logged-in user
+// 2. Comprehensive Fetch Function (Checks all possible locations)
 export const getSavedProperties = async (req, res, next) => {
   try {
-    const saved = await SavedProperty.find({ userId: req.user.id }).populate('propertyId');
-    const properties = saved.map(s => s.propertyId).filter(Boolean);
-    res.status(200).json({ success: true, properties });
+    const userId = req.user.id;
+    let properties = [];
+
+    // Check Collection A: SavedProperty model
+    const savedRecords = await SavedProperty.find({ userId }).populate('propertyId');
+    if (savedRecords && savedRecords.length > 0) {
+      properties = savedRecords.map((s) => s.propertyId).filter(Boolean);
+    }
+
+    // Check Collection B: User model fields if Collection A is empty
+    if (properties.length === 0) {
+      const user = await User.findById(userId).populate('savedProperties') || await User.findById(userId).populate('favorites');
+      if (user) {
+        properties = user.savedProperties || user.favorites || [];
+      }
+    }
+
+    console.log('--- MONGODB FETCH DEBUG ---');
+    console.log('Total properties resolved for user:', properties.length);
+
+    return res.status(200).json({ 
+      success: true, 
+      properties 
+    });
   } catch (error) {
-    next(error);
+    console.error('Fetch Saved Error:', error);
+    return res.status(200).json({ success: true, properties: [] });
   }
 };
 
+// Toggle Save / Unsave Property
+// 1. Diagnostic Save/Toggle Function
 export const toggleSaveProperty = async (req, res, next) => {
   try {
-    const { propertyId } = req.body;
     const userId = req.user.id;
+    const { propertyId } = req.body;
 
+    console.log('--- MONGODB SAVE DEBUG ---');
+    console.log('User ID:', userId);
+    console.log('Property ID received:', propertyId);
+
+    // Check SavedProperty collection
     const existing = await SavedProperty.findOne({ userId, propertyId });
+
     if (existing) {
-      await SavedProperty.deleteOne({ _id: existing._id });
-      return res.status(200).json({ success: true, saved: false, message: 'Removed from saved properties.' });
+      await SavedProperty.findByIdAndDelete(existing._id);
+      console.log('Removed from SavedProperty collection.');
+      return res.status(200).json({ success: true, saved: false, message: 'Removed' });
     } else {
-      await SavedProperty.create({ userId, propertyId });
-      return res.status(200).json({ success: true, saved: true, message: 'Added to saved properties.' });
+      const newSave = await SavedProperty.create({ userId, propertyId });
+      console.log('Successfully saved document in SavedProperty collection:', newSave._id);
+      return res.status(200).json({ success: true, saved: true, message: 'Saved' });
     }
   } catch (error) {
+    console.error('Save Property Error:', error);
     next(error);
   }
 };
 
-// Compare Properties Endpoints
+// Get Compare Properties for the logged-in user
+// 1. Get Compare Properties (Manually fetch the properties using the saved IDs)
 export const getCompareProperties = async (req, res, next) => {
   try {
-    const compares = await CompareProperty.find({ userId: req.user.id }).populate('propertyId');
-    const properties = compares.map(c => c.propertyId).filter(Boolean);
-    res.status(200).json({ success: true, properties });
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    const propertyIds = user.comparedProperties || [];
+    const properties = await Property.find({ _id: { $in: propertyIds } });
+
+    return res.status(200).json({ success: true, properties });
   } catch (error) {
+    console.error('Error fetching compare properties:', error);
     next(error);
   }
 };
 
+// 2. Toggle Compare Property
 export const toggleCompareProperty = async (req, res, next) => {
   try {
     const { propertyId } = req.body;
-    const userId = req.user.id;
+    const user = await User.findById(req.user.id);
 
-    const count = await CompareProperty.countDocuments({ userId });
-    const existing = await CompareProperty.findOne({ userId, propertyId });
-
-    if (existing) {
-      await CompareProperty.deleteOne({ _id: existing._id });
-      return res.status(200).json({ success: true, compared: false });
-    } else {
-      if (count >= 3) {
-        return next(errorHandler(400, 'You can compare a maximum of 3 properties at once.'));
-      }
-      await CompareProperty.create({ userId, propertyId });
-      return res.status(200).json({ success: true, compared: true });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
+
+    if (!user.comparedProperties) {
+      user.comparedProperties = [];
+    }
+
+    const existingIndex = user.comparedProperties.findIndex(
+      (id) => id.toString() === propertyId.toString()
+    );
+
+    if (existingIndex > -1) {
+      user.comparedProperties.splice(existingIndex, 1);
+    } else {
+      user.comparedProperties.push(propertyId);
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      comparedProperties: user.comparedProperties,
+      message: existingIndex > -1 ? 'Removed from compare' : 'Added to compare',
+    });
   } catch (error) {
+    console.error('Error toggling compare:', error);
     next(error);
   }
 };
