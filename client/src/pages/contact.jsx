@@ -7,7 +7,6 @@ export default function Contact() {
 
   const translations = {
     English: {
-      badge: '24/7 Multi-Language Support Portal',
       title: 'Contact MiEstate Support',
       subtitle: 'Need help with property listings, inspection scheduling, or agency verification? Our multi-lingual customer care team is available across Nigeria.',
       hotlineLabel: 'Official Support Hotline',
@@ -148,7 +147,7 @@ export default function Contact() {
                     miestate4life26@gmail.com
                   </a>
                   <a href='mailto:Miestate2027@gmail.com' className='text-slate-800 font-bold block hover:text-[#003580] transition text-sm'>
-                    Miestate2027@gmail.com
+                    Miestate207@gmail.com
                   </a>
                 </div>
               </div>
