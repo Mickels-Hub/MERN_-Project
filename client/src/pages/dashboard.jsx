@@ -1,130 +1,169 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 
-export default function UserOverview() {
+export default function Dashboard() {
   const { currentUser } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
-  const [stats, setStats] = useState({
-    savedCount: 0,
-    comparedCount: 0,
-    searchesCount: 0,
-    contactUnlocksCount: 0,
-  });
-  const [recentlyViewed, setRecentlyViewed] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const savedCount = currentUser?.savedListings?.length || currentUser?.savedProperties?.length || 0;
+  const comparedCount = currentUser?.comparedProperties?.length || currentUser?.compared?.length || 0;
+  const searchesCount = currentUser?.savedSearches?.length || currentUser?.searches?.length || 0;
+  const unlockedCount = currentUser?.unlockedContacts?.length || currentUser?.unlocked?.length || 0;
+
+  const [recentListings, setRecentListings] = useState([]);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchRecentProperties = async () => {
+      if (!currentUser?._id && !currentUser?.id) return;
+
       try {
-        const res = await fetch('/api/dashboard/overview', {
-          credentials: 'include',
-        });
-        const data = await res.json();
+        const userId = currentUser._id || currentUser.id;
 
-        if (data.success && data.stats) {
-          setStats({
-            savedCount: data.stats.savedProperties || 0,
-            comparedCount: data.stats.comparedProperties || 0,
-            searchesCount: data.stats.recentSearches || 0,
-            contactUnlocksCount: data.stats.contactAccess || 0,
-          });
-
-          if (data.recentlyViewed) {
-            setRecentlyViewed(data.recentlyViewed);
-          }
+        // 1. Sync User DB State
+        const userRes = await fetch(`/api/user/${userId}`);
+        if (userRes.ok) {
+          const updatedUser = await userRes.json();
+          dispatch({ type: 'user/signInSuccess', payload: updatedUser });
         }
-      } catch (error) {
-        console.error('Error fetching dashboard overview:', error);
-      } finally {
-        setLoading(false);
+
+        // 2. Fetch live properties for recently viewed/saved
+        const listingsRes = await fetch('/api/listing/get?limit=3');
+        if (listingsRes.ok) {
+          const data = await listingsRes.json();
+          const items = Array.isArray(data) ? data : (data.listings || data.data || []);
+          setRecentListings(items);
+        } else {
+          // Fallback to user saved array
+          const rawSaved = currentUser?.savedListings || currentUser?.savedProperties || [];
+          setRecentListings(rawSaved);
+        }
+      } catch (err) {
+        console.error('Error loading properties:', err);
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    fetchRecentProperties();
 
-  if (loading) {
-    return <div className="py-20 text-center text-[#64748B]">Loading your dashboard...</div>;
-  }
+    const handleFocus = () => fetchRecentProperties();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [dispatch, currentUser?._id, currentUser?.id]);
 
   return (
-    <div className="space-y-10 p-6">
-      {/* Welcome Banner */}
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {currentUser?.username || 'user'}
-          </h1>
-          <p className="text-[#64748B] mt-1">
-            Continue your property search and keep your shortlisted homes organized.
-          </p>
-        </div>
-        <Link
-          to="/search"
-          className="bg-[#0D9488] hover:bg-[#0F766E] text-white px-6 py-3 rounded-xl font-medium transition-colors"
+    <div className="p-6 md:p-10 max-w-7xl mx-auto">
+      {/* Welcome Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold text-slate-900">
+          Welcome back, {currentUser?.username || currentUser?.name || 'User'}!
+        </h1>
+        <p className="text-slate-500 text-sm mt-1">
+          Continue your property search and keep your shortlisted homes organized.
+        </p>
+      </div>
+
+      {/* 4 Stat Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <Link 
+          to="/dashboard/saved" 
+          className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition border border-slate-100 flex flex-col justify-between"
         >
-          Find a Property
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+            Saved Properties
+          </div>
+          <div className="text-4xl font-black text-slate-800">
+            {savedCount}
+          </div>
+        </Link>
+
+        <Link 
+          to="/dashboard/compare" 
+          className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition border border-slate-100 flex flex-col justify-between"
+        >
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+            Compared Properties
+          </div>
+          <div className="text-4xl font-black text-slate-800">
+            {comparedCount}
+          </div>
+        </Link>
+
+        <Link 
+          to="/dashboard/searches" 
+          className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition border border-slate-100 flex flex-col justify-between"
+        >
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+            Saved Searches
+          </div>
+          <div className="text-4xl font-black text-slate-800">
+            {searchesCount}
+          </div>
+        </Link>
+
+        <Link 
+          to="/dashboard/payments" 
+          className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition border border-slate-100 flex flex-col justify-between"
+        >
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+            Contact Access Unlocked
+          </div>
+          <div className="text-4xl font-black text-slate-800">
+            {unlockedCount}
+          </div>
         </Link>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <span className="text-sm font-medium text-[#64748B]">Saved Properties</span>
-          <h2 className="text-4xl font-bold text-gray-900 mt-2">{stats.savedCount}</h2>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <span className="text-sm font-medium text-[#64748B]">Compared Properties</span>
-          <h2 className="text-4xl font-bold text-gray-900 mt-2">{stats.comparedCount}</h2>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <span className="text-sm font-medium text-[#64748B]">Saved Searches</span>
-          <h2 className="text-4xl font-bold text-gray-900 mt-2">{stats.searchesCount}</h2>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <span className="text-sm font-medium text-[#64748B]">Contact Access Unlocked</span>
-          <h2 className="text-4xl font-bold text-gray-900 mt-2">{stats.contactUnlocksCount}</h2>
-        </div>
-      </div>
-
       {/* Recently Viewed Properties Section */}
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-gray-900">Recently Viewed Properties</h3>
-          <Link to="/properties" className="text-[#0D9488] hover:underline font-medium text-sm">
+      <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-slate-800">
+            Recently Viewed Properties
+          </h2>
+          <Link to="/properties" className="text-blue-600 font-semibold text-sm hover:underline">
             View All Properties →
           </Link>
         </div>
 
-        {recentlyViewed.length === 0 ? (
-          <div className="py-12 text-center">
-            <p className="text-[#64748B] mb-4">You haven't viewed any properties recently.</p>
-            <Link
-              to="/search"
-              className="bg-[#0F172A] hover:bg-black text-white px-6 py-3 rounded-xl font-medium transition-colors inline-block"
+        {recentListings.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-slate-400 text-sm mb-4">You haven't viewed any properties recently.</p>
+            <Link 
+              to="/properties" 
+              className="inline-block bg-slate-900 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-slate-800 transition"
             >
               Explore Properties
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {recentlyViewed.map((property) => (
-              <div key={property._id} className="border rounded-xl overflow-hidden shadow-sm">
-                <img
-                  src={property.imageUrls?.[0] || 'https://via.placeholder.com/300'}
-                  alt={property.name}
-                  className="h-48 w-full object-cover"
-                />
-                <div className="p-4">
-                  <h4 className="font-bold text-gray-900 truncate">{property.name}</h4>
-                  <p className="text-sm text-[#64748B] truncate">{property.address}</p>
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {recentListings.slice(0, 3).map((item, index) => {
+              const price = item.regularPrice || item.price || item.discountPrice;
+              const title = item.name || item.title || 'Featured Property';
+              const img = item.imageUrls?.[0] || item.imageUrl || 'https://images.unsplash.com/photo-1545324418-ccia3fa18c00';
+
+              return (
+                <Link 
+                  key={item._id || item.id || index} 
+                  to={item._id ? `/listing/${item._id}` : '/properties'} 
+                  className="border border-slate-100 rounded-xl p-4 shadow-sm hover:shadow-md transition block bg-slate-50/50"
+                >
+                  <img 
+                    src={img} 
+                    alt={title} 
+                    className="h-36 w-full object-cover rounded-lg mb-3 bg-slate-200"
+                  />
+                  <h3 className="font-bold text-slate-800 truncate mb-1">
+                    {title}
+                  </h3>
+                  <div className="text-emerald-600 font-black text-base">
+                    ₦ {price ? Number(price).toLocaleString() : 'Price on Request'}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
-}
+} 

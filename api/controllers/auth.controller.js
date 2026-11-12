@@ -98,17 +98,18 @@ export const google = async (req, res, next) => {
         process.env.JWT_SECRET
       );
       const { password: pass, ...rest } = newUser._doc;
-      const expiryDate = new Date(Date.now() + 3600000 * 24 * 7);
-      res
-        .cookie('access_token', token, {
-          httpOnly: true,
-          expires: expiryDate,
-          secure: false,
-          sameSite: 'lax',
-          path: '/',
-        })
-        .status(200)
-        .json({ ...rest, isAdmin: isAdminUser, token });
+      // Set cookie to last for 30 days permanently (in milliseconds)
+const expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 *  1000); 
+
+res
+  .cookie('access_token', token, {
+    httpOnly: true,
+    expires: expiryDate,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  })
+  .status(200)
+  .json(validUser);
     }
   } catch (error) {
     next(error);
