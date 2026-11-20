@@ -13,7 +13,6 @@ import cors from 'cors';
 import adminRouter from './routes/admin.route.js';
 import dashboardRouter from './routes/dashboard.route.js';
 import reportRouter from './routes/report.route.js';
-
 dotenv.config();
 
 mongoose

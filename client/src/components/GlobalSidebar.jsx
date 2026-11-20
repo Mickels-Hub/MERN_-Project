@@ -2,8 +2,13 @@ import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 export default function GlobalSidebar() {
-  const { currentUser } = useSelector((state) => state.user);
   const location = useLocation();
+  const { currentUser } = useSelector((state) => state.user);
+
+  // STRICT RULE: Hide sidebar completely if user is a Guest OR if user is an Admin
+  if (!currentUser || currentUser.isAdmin) {
+    return null;
+  }
 
   const navItems = [
     {
@@ -72,7 +77,7 @@ export default function GlobalSidebar() {
   ];
 
   return (
-    <aside className="fixed left-0 top-[119px] md:top-[125px] h-[calc(100vh-109px)] md:h-[calc(100vh-109px)] w-16 md:w-20 bg-white border-r border-gray-200 z-[999] flex flex-col items-center justify-between py-5 shadow-sm">
+    <aside className="sticky top-[119px] md:top-[125px] h-[calc(100vh-109px)] md:h-[calc(100vh-125px)] w-16 md:w-20 shrink-0 bg-white border-r border-gray-200 z-40 flex flex-col items-center justify-between py-4 shadow-sm">
       <nav className="flex flex-col items-center gap-2 w-full px-2">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;

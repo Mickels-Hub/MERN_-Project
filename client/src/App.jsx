@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 // Pages
 import Home from './pages/home';
@@ -21,7 +22,6 @@ import Terms from './pages/terms';
 import Privacy from './pages/privacy';
 import HowItWorks from './pages/how-it-works';
 import Profile from './pages/profile';
-import AdminDashboard from './pages/AdminDashboard';
 import Dashboard from './pages/dashboard';
 
 // Dashboard Sub-Pages
@@ -31,24 +31,39 @@ import RentalChecklist from './pages/dashboard/RentalChecklist';
 import MySearches from './pages/dashboard/MySearches';
 import PaymentsContactAccess from './pages/dashboard/PaymentsContactAccess';
 
+// Admin Pages
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminOverview from './pages/admin/AdminOverview';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminPayments from './pages/admin/AdminPayments';
+import AdminReports from './pages/admin/AdminReports';
+import AdminReportsAnalytics from './pages/admin/AdminReportsAnalytics';
+import AdminActivityLogs from './pages/admin/AdminActivityLogs';
+import AdminHomepageManagement from './pages/admin/AdminHomepageManagement';
+import AdminContentManagement from './pages/admin/AdminContentManagement';
+
 // Components & Layouts
 import Header from './components/header';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserLayout from './components/UserLayout';
-import GlobalSidebar from './components/GlobalSidebar'; // Brought back globally
+import GlobalSidebar from './components/GlobalSidebar';
+import AdminSidebar from './components/AdminSidebar';
+import AdminProtectedRoute from './components/AdminProtectedRoute';
 
 export default function App() {
+  const { currentUser } = useSelector((state) => state.user);
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-slate-100 flex flex-col">
         {/* Top Header */}
         <Header />
 
-        {/* Layout container with GlobalSidebar on the left */}
+        {/* Layout container with Sidebar on the left and content on the right */}
         <div className="flex flex-1 relative">
-          <GlobalSidebar />
+          {currentUser && currentUser.isAdmin ? <AdminSidebar /> : <GlobalSidebar />}
 
-          <main className="flex-1 min-h-screen">
+          <main className="flex-1 min-h-screen overflow-x-hidden">
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
@@ -63,9 +78,8 @@ export default function App() {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/community" element={<Help />} />
               <Route path="/help" element={<Help />} />
-              <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
-              {/* Protected Routes (Guests redirected to /signup) */}
+              {/* Protected Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/listing/:listingId" element={<Listing />} />
                 <Route path="/properties" element={<Properties />} />
@@ -73,20 +87,33 @@ export default function App() {
                 <Route path="/category/:categoryName" element={<CategoryView />} />
                 <Route path="/location/:locationName" element={<LocationView />} />
                 <Route path="/locations" element={<Locations />} />
-
-                {/* User Dashboard Sub-Routes Inside UserLayout */}
-                <Route element={<UserLayout />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/dashboard/saved" element={<SavedProperties />} />
-                  <Route path="/dashboard/compare" element={<CompareProperties />} />
-                  <Route path="/dashboard/checklist" element={<RentalChecklist />} />
-                  <Route path="/dashboard/searches" element={<MySearches />} />
-                  <Route path="/dashboard/payments" element={<PaymentsContactAccess />} />
-                  <Route path="/profile" element={<Profile />} />
-                </Route>
-
                 <Route path="/create-listing" element={<CreateListing />} />
                 <Route path="/update-listing/:listingId" element={<CreateListing />} />
+              </Route>
+
+              {/* User Dashboard Sub-Routes */}
+              <Route element={<UserLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard/saved" element={<SavedProperties />} />
+                <Route path="/dashboard/compare" element={<CompareProperties />} />
+                <Route path="/dashboard/checklist" element={<RentalChecklist />} />
+                <Route path="/dashboard/searches" element={<MySearches />} />
+                <Route path="/dashboard/payments" element={<PaymentsContactAccess />} />
+                <Route path="/profile" element={<Profile />} />
+              </Route>
+
+              {/* Admin Panel Protected Routes */}
+              <Route element={<AdminProtectedRoute />}>
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminOverview />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="payments" element={<AdminPayments />} />
+                  <Route path="reports" element={<AdminReports />} />
+                  <Route path="analytics" element={<AdminReportsAnalytics />} />
+                  <Route path="logs" element={<AdminActivityLogs />} />
+                  <Route path="cms" element={<AdminHomepageManagement />} />
+                  <Route path="content" element={<AdminContentManagement />} />
+                </Route>
               </Route>
             </Routes>
           </main>

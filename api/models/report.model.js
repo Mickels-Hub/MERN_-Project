@@ -1,15 +1,27 @@
 import mongoose from 'mongoose';
 
-const reportSchema = new mongoose.Schema(
-  {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    propertyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Property', required: true },
-    reason: { type: String, required: true },
-    details: { type: String },
-    status: { type: String, default: 'pending' }, // pending, resolved, dismissed
+const reportSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
   },
-  { timestamps: true }
-);
+  listingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Listing',
+  },
+  reason: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+  },
+  status: {
+    type: String,
+    default: 'pending',
+  },
+}, { timestamps: true });
 
 const Report = mongoose.model('Report', reportSchema);
 export default Report;
